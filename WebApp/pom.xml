@@ -34,17 +34,15 @@
             <resource>
                 <directory>src/main/resources</directory>
                 <excludes>
-                    <exclude>react-frontend/node_modules/**</exclude>
-                    <exclude>react-frontend/build/**</exclude>
-                    <exclude>react-frontend/src/**</exclude>
-                    <exclude>react-frontend/public/**</exclude>
-                    <exclude>react-frontend/components/**</exclude>
-                    <exclude>react-frontend/services/**</exclude>
-                    <exclude>react-frontend/context/**</exclude>
-                    <exclude>react-frontend/*.js</exclude>
-                    <exclude>react-frontend/*.json</exclude>
-                    <exclude>react-frontend/*.html</exclude>
+                    <exclude>react-frontend/**</exclude>
                 </excludes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <includes>
+                    <include>static/**</include>
+                    <include>application*.properties</include>
+                </includes>
             </resource>
         </resources>
         <plugins>
