@@ -14,7 +14,7 @@ build_serviceapp:
   image: maven:3.9.9-eclipse-temurin-21
   script:
     - cd ServiceApp
-    - mvn clean package -DskipTests -e
+    - mvn -U clean package -DskipTests -e
   artifacts:
     paths:
       - ServiceApp/target/serviceapp.jar
@@ -24,7 +24,7 @@ build_webapp:
   image: maven:3.9.9-eclipse-temurin-21
   script:
     - cd WebApp
-    - mvn clean package -DskipTests -e
+    - mvn -U clean package -DskipTests -e
   artifacts:
     paths:
       - WebApp/target/webapp.jar
