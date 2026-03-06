@@ -22,6 +22,8 @@ build_serviceapp:
 build_webapp:
   stage: build
   image: maven:3.9.9-eclipse-temurin-21
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq nodejs npm
   script:
     - cd WebApp
     - mvn -U clean package -DskipTests -e
