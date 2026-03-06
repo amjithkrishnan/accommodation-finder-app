@@ -11,7 +11,7 @@ cache:
 
 build_serviceapp:
   stage: build
-  image: maven:3.9.9-eclipse-temurin-17
+  image: maven:3.9.9-eclipse-temurin-21
   script:
     - cd ServiceApp
     - mvn clean package -DskipTests -e
@@ -21,7 +21,7 @@ build_serviceapp:
 
 build_webapp:
   stage: build
-  image: maven:3.9.9-eclipse-temurin-17
+  image: maven:3.9.9-eclipse-temurin-21
   script:
     - cd WebApp
     - mvn clean package -DskipTests -e
