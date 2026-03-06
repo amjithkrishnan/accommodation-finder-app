@@ -1,3 +1,9 @@
 # Maven target folders
 ServiceApp/target/
 WebApp/target/
+
+# React build artifacts
+WebApp/src/main/resources/react-frontend/node_modules/
+WebApp/src/main/resources/react-frontend/build/
+WebApp/src/main/resources/react-frontend/package-lock.json
+WebApp/src/main/resources/static/

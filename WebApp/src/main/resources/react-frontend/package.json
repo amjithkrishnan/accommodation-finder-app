@@ -1,6 +1,14 @@
 {
   "name": "react-frontend",
   "version": "1.0.0",
-  "description": "AccommodateMe React Frontend - CDN-based React application",
-  "private": true
+  "description": "AccommodateMe React Frontend",
+  "private": true,
+  "scripts": {
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.5",
+    "@babel/preset-react": "^7.23.3",
+    "terser": "^5.26.0"
+  }
 }
