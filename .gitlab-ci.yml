@@ -17,7 +17,7 @@ build_serviceapp:
     - mvn clean package -DskipTests -e
   artifacts:
     paths:
-      - ServiceApp/target/*.jar
+      - ServiceApp/target/serviceapp.jar
 
 build_webapp:
   stage: build
@@ -27,7 +27,7 @@ build_webapp:
     - mvn clean package -DskipTests -e
   artifacts:
     paths:
-      - WebApp/target/*.jar
+      - WebApp/target/webapp.jar
 
 deploy:
   stage: deploy
@@ -37,30 +37,44 @@ deploy:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
-    - |
-      if [ -z "$EC2_HOST" ]; then
-        echo "ERROR: EC2_HOST is not set"
-        exit 1
-      fi
-    - |
-      if [ -z "$EC2_USER" ]; then
-        echo "ERROR: EC2_USER is not set"
-        exit 1
-      fi
-    - |
-      if [ -z "$SSH_PRIVATE_KEY" ]; then
-        echo "ERROR: SSH_PRIVATE_KEY is not set"
-        exit 1
-      fi
+    - test -n "$EC2_HOST" || (echo "ERROR: EC2_HOST is not set" && exit 1)
+    - test -n "$EC2_USER" || (echo "ERROR: EC2_USER is not set" && exit 1)
+    - test -n "$SSH_PRIVATE_KEY" || (echo "ERROR: SSH_PRIVATE_KEY is not set" && exit 1)
     - ssh-keyscan -H "$EC2_HOST" >> ~/.ssh/known_hosts
 
   script:
-    - scp ServiceApp/target/*.jar $EC2_USER@$EC2_HOST:/opt/serviceapp/serviceapp.jar
-    - scp WebApp/target/*.jar $EC2_USER@$EC2_HOST:/opt/webapp/webapp.jar
+    - scp ServiceApp/target/serviceapp.jar $EC2_USER@$EC2_HOST:/opt/serviceapp/serviceapp.jar
+    - scp WebApp/target/webapp.jar $EC2_USER@$EC2_HOST:/opt/webapp/webapp.jar
+    - |
+      ssh $EC2_USER@$EC2_HOST "cat > /opt/serviceapp/.env <<EOF
+      SPRING_PROFILES_ACTIVE=prod
+      DB_URL=$DB_URL
+      DB_USERNAME=$DB_USERNAME
+      DB_PASSWORD=$DB_PASSWORD
+      DB_DRIVER=$DB_DRIVER
+      DDL_AUTO=$DDL_AUTO
+      SHOW_SQL=$SHOW_SQL
+      HIBERNATE_DIALECT=$HIBERNATE_DIALECT
+      SESSION_TIMEOUT=$SESSION_TIMEOUT
+      COOKIE_MAX_AGE=$COOKIE_MAX_AGE
+      COOKIE_SECURE=$COOKIE_SECURE
+      MAX_FILE_SIZE=$MAX_FILE_SIZE
+      MAX_REQUEST_SIZE=$MAX_REQUEST_SIZE
+      STORAGE_MODE=$STORAGE_MODE
+      S3_BUCKET_NAME=$S3_BUCKET_NAME
+      AWS_REGION=$AWS_REGION
+      INTERNAL_SECRET=$INTERNAL_SECRET
+      AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+      AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+      EOF"
+    - |
+      ssh $EC2_USER@$EC2_HOST "cat > /opt/webapp/.env <<EOF
+      SPRING_PROFILES_ACTIVE=prod
+      SERVICE_APP_URL=$SERVICE_APP_URL
+      INTERNAL_SECRET=$INTERNAL_SECRET
+      EOF"
     - ssh $EC2_USER@$EC2_HOST "sudo systemctl restart serviceapp"
     - ssh $EC2_USER@$EC2_HOST "sudo systemctl restart webapp"
 
-  only:
-    - master
-    
-
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
