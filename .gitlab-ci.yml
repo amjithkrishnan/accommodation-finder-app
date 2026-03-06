@@ -1,0 +1,49 @@
+stages:
+  - build
+  - deploy
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  paths:
+    - .m2/repository
+
+build_serviceapp:
+  stage: build
+  image: maven:3.9.9-eclipse-temurin-17
+  script:
+    - cd ServiceApp
+    - mvn clean package -DskipTests
+  artifacts:
+    paths:
+      - ServiceApp/target/*.jar
+
+build_webapp:
+  stage: build
+  image: maven:3.9.9-eclipse-temurin-17
+  script:
+    - cd WebApp
+    - mvn clean package -DskipTests
+  artifacts:
+    paths:
+      - WebApp/target/*.jar
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache openssh
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - ssh-keyscan $EC2_HOST >> ~/.ssh/known_hosts
+
+  script:
+    - scp ServiceApp/target/*.jar $EC2_USER@$EC2_HOST:/opt/serviceapp/serviceapp.jar
+    - scp WebApp/target/*.jar $EC2_USER@$EC2_HOST:/opt/webapp/webapp.jar
+    - ssh $EC2_USER@$EC2_HOST "sudo systemctl restart serviceapp"
+    - ssh $EC2_USER@$EC2_HOST "sudo systemctl restart webapp"
+
+  only:
+    - master
