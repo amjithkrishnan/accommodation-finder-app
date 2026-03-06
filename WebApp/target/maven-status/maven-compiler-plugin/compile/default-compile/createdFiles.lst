@@ -1,7 +1,0 @@
-com\example\webapp\service\AuthService.class
-com\example\webapp\controller\AuthController.class
-com\example\webapp\ProxyController$1.class
-com\example\webapp\model\User.class
-com\example\webapp\dto\ApiResponse.class
-com\example\webapp\WebAppApplication.class
-com\example\webapp\ProxyController.class
