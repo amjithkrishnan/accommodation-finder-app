@@ -26,7 +26,13 @@ build_webapp:
     - apt-get update -qq && apt-get install -y -qq nodejs npm
   script:
     - cd WebApp
+    - echo "Checking if static folder exists before build:"
+    - ls -la src/main/resources/static/ || echo "Static folder does not exist"
     - mvn -U clean package -DskipTests -e
+    - echo "Checking if static folder exists after build:"
+    - ls -la src/main/resources/static/ || echo "Static folder still does not exist"
+    - echo "Checking target/classes/static:"
+    - ls -la target/classes/static/ || echo "No static in target/classes"
     - echo "Checking static files in JAR:"
     - jar -tf target/webapp.jar | grep static || echo "NO STATIC FILES FOUND"
   artifacts:
