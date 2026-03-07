@@ -27,6 +27,8 @@ build_webapp:
   script:
     - cd WebApp
     - mvn -U clean package -DskipTests -e
+    - echo "Checking static files in JAR:"
+    - jar -tf target/webapp.jar | grep static || echo "NO STATIC FILES FOUND"
   artifacts:
     paths:
       - WebApp/target/webapp.jar
