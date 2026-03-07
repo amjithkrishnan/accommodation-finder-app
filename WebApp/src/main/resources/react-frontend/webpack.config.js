@@ -3,6 +3,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 
+const DROP_CONSOLE = process.env.DROP_CONSOLE !== 'false';
+
 module.exports = {
   entry: './build-entry.js',
   output: {
@@ -46,7 +48,7 @@ module.exports = {
       new TerserPlugin({
         terserOptions: {
           compress: {
-            drop_console: true,
+            drop_console: DROP_CONSOLE,
             drop_debugger: true
           },
           mangle: true,

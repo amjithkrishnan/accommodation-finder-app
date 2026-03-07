@@ -11,8 +11,12 @@ function AuthProvider({ children }) {
     const checkAuth = async () => {
         try {
             const data = await authService.me();
-            if (data.authenticated) {
-                setUser(data.user);
+            if (data.status && data.response) {
+                if (data.response.authenticated && data.response.user) {
+                    setUser(data.response.user);
+                } else {
+                    setUser(null);
+                }
             } else {
                 setUser(null);
             }
@@ -25,7 +29,11 @@ function AuthProvider({ children }) {
 
     const login = async (email, password) => {
         const response = await authService.login(email, password);
-        if (response.status === 'success') {
+        if (response.status) {
+            await checkAuth();
+            return true;
+        }
+        if (response.errorCode === 'ALREADY_LOGGED_IN') {
             await checkAuth();
             return true;
         }

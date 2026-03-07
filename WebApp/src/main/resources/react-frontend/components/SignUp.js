@@ -65,14 +65,20 @@ function SignUp({ onSuccess, onSignIn }) {
         try {
             const data = await authService.register(email, password);
             console.log('Registration response:', data);
-            if (data.status === 'success') {
+            if (data.status) {
                 alert('Registration successful! Please sign in.');
+                onSuccess();
+            } else if (data.errorCode === 'ALREADY_LOGGED_IN') {
                 onSuccess();
             } else {
                 setError(data.errorMsg || 'Registration failed');
             }
         } catch (err) {
-            setError('Registration failed. Please try again.');
+            if (err.response?.data?.errorCode === 'ALREADY_LOGGED_IN') {
+                onSuccess();
+            } else {
+                setError('Registration failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }

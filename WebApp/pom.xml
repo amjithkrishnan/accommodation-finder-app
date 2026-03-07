@@ -19,6 +19,7 @@
 
     <properties>
         <java.version>21</java.version>
+        <npm.build.script>build:prod</npm.build.script>
     </properties>
 
     <dependencies>
@@ -26,7 +27,29 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
     </dependencies>
+
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <properties>
+                <npm.build.script>build:dev</npm.build.script>
+            </properties>
+        </profile>
+        <profile>
+            <id>prod</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <npm.build.script>build:prod</npm.build.script>
+            </properties>
+        </profile>
+    </profiles>
 
     <build>
         <finalName>webapp</finalName>
@@ -78,7 +101,7 @@
                             <executable>npm</executable>
                             <arguments>
                                 <argument>run</argument>
-                                <argument>build</argument>
+                                <argument>${npm.build.script}</argument>
                             </arguments>
                             <workingDirectory>${project.basedir}/src/main/resources/react-frontend</workingDirectory>
                         </configuration>

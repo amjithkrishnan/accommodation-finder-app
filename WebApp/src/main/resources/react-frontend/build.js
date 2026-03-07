@@ -3,6 +3,9 @@ const path = require('path');
 const { minify } = require('terser');
 const babel = require('@babel/core');
 
+const buildMode = process.argv[2] || 'prod';
+const dropConsole = buildMode === 'prod';
+
 const buildDir = path.join(__dirname, 'build');
 
 // Clean and create build directory
@@ -60,7 +63,7 @@ const transpiled = babel.transformSync(concatenated, {
 // Minify
 minify(transpiled.code, {
   compress: {
-    drop_console: true,
+    drop_console: dropConsole,
     drop_debugger: true
   },
   mangle: true,
@@ -128,6 +131,7 @@ minify(transpiled.code, {
   fs.copyFileSync('config.js', path.join(buildDir, 'config.js'));
 
   console.log(`Build complete! Bundle: ${bundleName}`);
+  console.log(`Mode: ${buildMode} (drop_console: ${dropConsole})`);
   console.log(`Size: ${(result.code.length / 1024).toFixed(2)} KB`);
 }).catch(err => {
   console.error('Build failed:', err);

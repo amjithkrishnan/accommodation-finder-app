@@ -45,6 +45,16 @@ public class ProxyController {
         return proxyRequest(request, null);
     }
     
+    @RequestMapping(value = "/auth/register", method = RequestMethod.POST)
+    public ResponseEntity<?> proxyAuthRegister(HttpServletRequest request, @RequestBody String body) {
+        return proxyRequest(request, body);
+    }
+    
+    @RequestMapping(value = "/auth/login", method = RequestMethod.POST)
+    public ResponseEntity<?> proxyAuthLogin(HttpServletRequest request, @RequestBody String body) {
+        return proxyRequest(request, body);
+    }
+    
     @RequestMapping(value = "/auth/logout", method = RequestMethod.POST)
     public ResponseEntity<?> proxyAuthLogout(HttpServletRequest request) {
         return proxyRequest(request, null);
@@ -120,6 +130,7 @@ public class ProxyController {
             String url = serviceAppUrl + "/api" + path;
             
             HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
             
             // Forward session cookie
             String sessionCookie = getSessionCookie(request);

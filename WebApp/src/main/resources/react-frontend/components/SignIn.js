@@ -54,7 +54,11 @@ function SignIn({ onSignUp, onForgotPassword, onSuccess }) {
                 setError('Invalid credentials');
             }
         } catch (err) {
-            setError('Login failed. Please try again.');
+            if (err.response?.data?.errorCode === 'ALREADY_LOGGED_IN') {
+                onSuccess();
+            } else {
+                setError('Login failed. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
@@ -69,7 +73,7 @@ function SignIn({ onSignUp, onForgotPassword, onSuccess }) {
         setLoading(true);
         try {
             const data = await authService.forgotPassword(email);
-            if (data.status === 'success') {
+            if (data.status) {
                 alert(data.response || 'Password reset link sent to your email');
             } else {
                 setError(data.errorMsg || 'Email not found');

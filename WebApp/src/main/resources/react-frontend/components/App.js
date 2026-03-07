@@ -12,13 +12,14 @@ function App() {
         // GuestOnly routes: redirect to /listings if logged in
         if (user && (route === '/signin' || route === '/signup')) {
             navigate('/listings');
+            return;
         }
         
         // RequireAuth routes: redirect to /signin if not logged in
         if (!user && route === '/listings') {
             navigate('/signin');
         }
-    }, [route, user, loading]);
+    }, [route, user, loading, navigate]);
 
     if (loading) {
         return (

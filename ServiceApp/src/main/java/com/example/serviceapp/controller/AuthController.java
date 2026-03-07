@@ -1,9 +1,11 @@
 package com.example.serviceapp.controller;
 
-import com.example.serviceapp.dto.ApiResponse;
+import com.example.serviceapp.dto.ResponseDTO;
 import com.example.serviceapp.dto.UserDTO;
 import com.example.serviceapp.model.User;
 import com.example.serviceapp.service.AuthService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,52 +28,56 @@ public class AuthController {
             Map<String, Object> response = new HashMap<>();
             response.put("authenticated", true);
             response.put("user", user);
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ResponseDTO.success(response));
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("authenticated", false));
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<ApiResponse> register(@RequestBody User user, HttpSession session) {
+    public ResponseEntity<ResponseDTO> register(@RequestBody User user, HttpSession session) {
         if (authService.isLoggedIn(session)) {
-            return ResponseEntity.badRequest().body(ApiResponse.failed("Already logged in", "ALREADY_LOGGED_IN"));
+            return ResponseEntity.badRequest().body(ResponseDTO.failed("Already logged in", "ALREADY_LOGGED_IN"));
         }
         if (authService.register(user.getEmail(), user.getPassword())) {
-            return ResponseEntity.ok(ApiResponse.success("User registered successfully"));
+            return ResponseEntity.ok(ResponseDTO.success("User registered successfully"));
         }
-        return ResponseEntity.badRequest().body(ApiResponse.failed("User already exists", "USER_EXISTS"));
+        return ResponseEntity.badRequest().body(ResponseDTO.failed("User already exists", "USER_EXISTS"));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<ApiResponse> login(@RequestBody User user, HttpSession session) {
+    public ResponseEntity<ResponseDTO> login(@RequestBody User user, HttpSession session) {
         if (authService.isLoggedIn(session)) {
-            return ResponseEntity.badRequest().body(ApiResponse.failed("Already logged in", "ALREADY_LOGGED_IN"));
+            return ResponseEntity.badRequest().body(ResponseDTO.failed("Already logged in", "ALREADY_LOGGED_IN"));
         }
         if (authService.login(user.getEmail(), user.getPassword(), session)) {
-            return ResponseEntity.ok(ApiResponse.success("Login successful"));
+            return ResponseEntity.ok(ResponseDTO.success("Login successful"));
         }
-        return ResponseEntity.badRequest().body(ApiResponse.failed("Invalid credentials", "INVALID_CREDENTIALS"));
+        return ResponseEntity.badRequest().body(ResponseDTO.failed("Invalid credentials", "INVALID_CREDENTIALS"));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<ApiResponse> logout(HttpSession session) {
+    public ResponseEntity<ResponseDTO> logout(HttpSession session, HttpServletResponse response) {
         authService.logout(session);
-        return ResponseEntity.ok(ApiResponse.success("Logout successful"));
+        Cookie cookie = new Cookie("SESSION", null);
+        cookie.setMaxAge(0);
+        cookie.setPath("/");
+        response.addCookie(cookie);
+        return ResponseEntity.ok(ResponseDTO.success("Logout successful"));
     }
 
     @GetMapping("/check")
-    public ResponseEntity<ApiResponse> checkSession(HttpSession session) {
+    public ResponseEntity<ResponseDTO> checkSession(HttpSession session) {
         if (authService.isLoggedIn(session)) {
-            return ResponseEntity.ok(ApiResponse.success("Logged in"));
+            return ResponseEntity.ok(ResponseDTO.success("Logged in"));
         }
-        return ResponseEntity.ok(ApiResponse.failed("Not logged in", "NOT_LOGGED_IN"));
+        return ResponseEntity.ok(ResponseDTO.failed("Not logged in", "NOT_LOGGED_IN"));
     }
 
     @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse> forgotPassword(@RequestBody User user) {
+    public ResponseEntity<ResponseDTO> forgotPassword(@RequestBody User user) {
         if (authService.resetPassword(user.getEmail())) {
-            return ResponseEntity.ok(ApiResponse.success("Password reset link sent"));
+            return ResponseEntity.ok(ResponseDTO.success("Password reset link sent"));
         }
-        return ResponseEntity.badRequest().body(ApiResponse.failed("Email not found", "EMAIL_NOT_FOUND"));
+        return ResponseEntity.badRequest().body(ResponseDTO.failed("Email not found", "EMAIL_NOT_FOUND"));
     }
 }

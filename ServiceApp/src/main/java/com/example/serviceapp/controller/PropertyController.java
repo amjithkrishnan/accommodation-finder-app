@@ -1,6 +1,7 @@
 package com.example.serviceapp.controller;
 
 import com.example.serviceapp.dto.PropertyDTO;
+import com.example.serviceapp.dto.ResponseDTO;
 import com.example.serviceapp.dto.UserDTO;
 import com.example.serviceapp.model.Property;
 import com.example.serviceapp.model.PropertyMedia;
@@ -64,8 +65,7 @@ public class PropertyController {
         try {
             UserDTO user = (UserDTO) session.getAttribute("USER");
             if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Not authenticated"));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
             }
 
             PropertyDTO propertyDTO = new PropertyDTO();
@@ -111,15 +111,13 @@ public class PropertyController {
             }
             
             Map<String, Object> response = new HashMap<>();
-            response.put("status", "success");
             response.put("message", "Property created successfully");
             response.put("propertyId", property.getPropertyId());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ResponseDTO.success(response));
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ResponseDTO.failed(e.getMessage(), "INTERNAL_ERROR"));
         }
     }
 
@@ -142,8 +140,7 @@ public class PropertyController {
         try {
             UserDTO user = (UserDTO) session.getAttribute("USER");
             if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Not authenticated"));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
             }
 
             PropertyDTO propertyDTO = new PropertyDTO();
@@ -189,17 +186,14 @@ public class PropertyController {
             }
             
             Map<String, Object> response = new HashMap<>();
-            response.put("status", "success");
             response.put("message", "Property updated successfully");
             response.put("propertyId", property.getPropertyId());
             
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok(ResponseDTO.success(response));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ResponseDTO.failed(e.getMessage(), "FORBIDDEN"));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ResponseDTO.failed(e.getMessage(), "INTERNAL_ERROR"));
         }
     }
 
@@ -208,8 +202,7 @@ public class PropertyController {
         try {
             UserDTO user = (UserDTO) session.getAttribute("USER");
             if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Not authenticated"));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
             }
 
             List<Property> properties = propertyService.getUserProperties(user.getId());
@@ -236,10 +229,9 @@ public class PropertyController {
                 return map;
             }).collect(Collectors.toList());
             
-            return ResponseEntity.ok(Map.of("status", "success", "properties", propertyList));
+            return ResponseEntity.ok(ResponseDTO.success(Map.of("properties", propertyList)));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ResponseDTO.failed(e.getMessage(), "INTERNAL_ERROR"));
         }
     }
 
@@ -248,8 +240,7 @@ public class PropertyController {
         try {
             UserDTO user = (UserDTO) session.getAttribute("USER");
             if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Not authenticated"));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
             }
 
             Property property = propertyService.getPropertyById(id);
@@ -267,10 +258,9 @@ public class PropertyController {
             response.put("description", property.getDescription());
             response.put("amenities", propertyService.getPropertyAmenities(property.getPropertyId()));
             
-            return ResponseEntity.ok(Map.of("status", "success", "property", response));
+            return ResponseEntity.ok(ResponseDTO.success(Map.of("property", response)));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ResponseDTO.failed(e.getMessage(), "NOT_FOUND"));
         }
     }
 
@@ -279,19 +269,16 @@ public class PropertyController {
         try {
             UserDTO user = (UserDTO) session.getAttribute("USER");
             if (user == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Not authenticated"));
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
             }
 
             propertyService.deleteProperty(id, user.getId());
             
-            return ResponseEntity.ok(Map.of("status", "success", "message", "Property deleted successfully"));
+            return ResponseEntity.ok(ResponseDTO.success(Map.of("message", "Property deleted successfully")));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ResponseDTO.failed(e.getMessage(), "FORBIDDEN"));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ResponseDTO.failed(e.getMessage(), "INTERNAL_ERROR"));
         }
     }
 }

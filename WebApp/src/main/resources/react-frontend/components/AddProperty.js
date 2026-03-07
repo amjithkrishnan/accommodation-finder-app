@@ -34,8 +34,8 @@ function AddProperty({ onBack }) {
                 masterDataService.getPropertyTypes(),
                 masterDataService.getAmenities()
             ]);
-            if (typesRes.status === 'success') setPropertyTypes(typesRes.propertyTypes);
-            if (amenitiesRes.status === 'success') setAmenitiesList(amenitiesRes.amenities);
+            if (typesRes.status && typesRes.response) setPropertyTypes(typesRes.response.propertyTypes || []);
+            if (amenitiesRes.status && amenitiesRes.response) setAmenitiesList(amenitiesRes.response.amenities || []);
         } catch (error) {
             console.error('Failed to fetch master data:', error);
         }

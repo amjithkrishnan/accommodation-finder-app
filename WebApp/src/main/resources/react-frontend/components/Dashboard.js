@@ -16,8 +16,10 @@ function Dashboard({ onLogout }) {
         setLoading(true);
         try {
             const response = await propertyService.getUserProperties();
-            if (response.status === 'success') {
-                setProperties(response.properties);
+            console.log('Properties response:', response);
+            console.log('status', response.status);
+            if (response.status && response.response && response.response.properties) {
+                setProperties(response.response.properties);
             }
         } catch (error) {
             console.error('Failed to fetch properties:', error);
