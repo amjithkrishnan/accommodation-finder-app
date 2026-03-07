@@ -33,16 +33,12 @@
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
+                <includes>
+                    <include>**/*</include>
+                </includes>
                 <excludes>
                     <exclude>react-frontend/**</exclude>
                 </excludes>
-            </resource>
-            <resource>
-                <directory>src/main/resources</directory>
-                <includes>
-                    <include>static/**</include>
-                    <include>application*.properties</include>
-                </includes>
             </resource>
         </resources>
         <plugins>
