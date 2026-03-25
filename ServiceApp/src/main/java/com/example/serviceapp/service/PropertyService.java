@@ -7,11 +7,16 @@ import com.example.serviceapp.repository.PropertyAmenityRepository;
 import com.example.serviceapp.repository.PropertyMediaRepository;
 import com.example.serviceapp.repository.PropertyRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import jakarta.persistence.criteria.Predicate;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -40,6 +45,11 @@ public class PropertyService {
             property.setPropertyType(dto.getPropertyType());
             property.setAddress(dto.getLocation());
             property.setCity(dto.getCity());
+            property.setEircode(dto.getEircode());
+            property.setCounty(dto.getCounty());
+            if (dto.getFurnishType() != null) {
+                property.setFurnishType(Property.FurnishType.valueOf(dto.getFurnishType().toUpperCase().replace(" ", "_")));
+            }
             property.setPrice(dto.getPrice());
             property.setBedrooms(dto.getBedrooms());
             property.setBathrooms(dto.getBathrooms());
@@ -79,6 +89,11 @@ public class PropertyService {
         property.setPropertyType(dto.getPropertyType());
         property.setAddress(dto.getLocation());
         property.setCity(dto.getCity());
+        property.setEircode(dto.getEircode());
+        property.setCounty(dto.getCounty());
+        if (dto.getFurnishType() != null) {
+            property.setFurnishType(Property.FurnishType.valueOf(dto.getFurnishType().toUpperCase().replace(" ", "_")));
+        }
         property.setPrice(dto.getPrice());
         property.setBedrooms(dto.getBedrooms());
         property.setBathrooms(dto.getBathrooms());
@@ -127,5 +142,46 @@ public class PropertyService {
                 .stream()
                 .map(PropertyAmenity::getAmenityName)
                 .collect(Collectors.toList());
+    }
+
+    public org.springframework.data.domain.Page<Property> searchProperties(String location, String propertyType, BigDecimal minPrice, BigDecimal maxPrice, Integer bedrooms, LocalDate availableFrom, int page, int size) {
+        Specification<Property> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            predicates.add(cb.equal(root.get("listingStatus"), Property.ListingStatus.AVAILABLE));
+            
+            if (location != null && !location.trim().isEmpty()) {
+                String searchPattern = "%" + location.toLowerCase() + "%";
+                predicates.add(cb.or(
+                    cb.like(cb.lower(root.get("city")), searchPattern),
+                    cb.like(cb.lower(root.get("address")), searchPattern)
+                ));
+            }
+            
+            if (propertyType != null && !propertyType.trim().isEmpty()) {
+                predicates.add(cb.equal(root.get("propertyType"), propertyType));
+            }
+            
+            if (minPrice != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("price"), minPrice));
+            }
+            
+            if (maxPrice != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("price"), maxPrice));
+            }
+            
+            if (bedrooms != null) {
+                predicates.add(cb.equal(root.get("bedrooms"), bedrooms));
+            }
+            
+            if (availableFrom != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("availableFrom"), availableFrom));
+            }
+            
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+        
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        return propertyRepository.findAll(spec, pageable);
     }
 }

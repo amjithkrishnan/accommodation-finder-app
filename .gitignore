@@ -1,9 +1,52 @@
-# Maven target folders
-ServiceApp/target/
-WebApp/target/
+# ===== Maven =====
+target/
+*.jar
+*.war
+*.ear
+!**/test/**/*.jar
 
-# React build artifacts
-WebApp/src/main/resources/react-frontend/node_modules/
-WebApp/src/main/resources/react-frontend/build/
-WebApp/src/main/resources/react-frontend/package-lock.json
+# ===== Spring Boot =====
+*.original
+
+# ===== React / Node =====
+node_modules/
+build/
+package-lock.json
+npm-debug.log*
+
+# ===== IDE =====
+.idea/
+*.iml
+.vscode/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.classpath
+.project
+.settings/
+*.launch
+.factorypath
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== Logs =====
+*.log
+logs/
+
+# ===== Environment / Secrets =====
+.env
+.env.*
+application-local.properties
+application-secret.properties
+secrets.properties
+
+# ===== Local uploads =====
+uploads/
+ServiceApp/uploads/
+
+# ===== Static build output =====
 WebApp/src/main/resources/static/

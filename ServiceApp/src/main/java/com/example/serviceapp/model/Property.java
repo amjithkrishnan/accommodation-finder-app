@@ -27,12 +27,19 @@ public class Property {
     @Column(nullable = false)
     private String address;
 
+    private String eircode;
+
     @Column(nullable = false, length = 100)
     private String city;
+
+    private String county;
 
     private String postalCode;
 
     private String country = "Ireland";
+
+    @Enumerated(EnumType.STRING)
+    private FurnishType furnishType;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
@@ -60,6 +67,7 @@ public class Property {
 
     public enum LeaseType { LONG_TERM, SHORT_TERM }
     public enum ListingStatus { AVAILABLE, RENTED, PENDING, INACTIVE }
+    public enum FurnishType { FURNISHED, UNFURNISHED, PART_FURNISHED }
 
     @PrePersist
     protected void onCreate() {
@@ -91,6 +99,12 @@ public class Property {
     public void setPostalCode(String postalCode) { this.postalCode = postalCode; }
     public String getCountry() { return country; }
     public void setCountry(String country) { this.country = country; }
+    public String getEircode() { return eircode; }
+    public void setEircode(String eircode) { this.eircode = eircode; }
+    public String getCounty() { return county; }
+    public void setCounty(String county) { this.county = county; }
+    public FurnishType getFurnishType() { return furnishType; }
+    public void setFurnishType(FurnishType furnishType) { this.furnishType = furnishType; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
     public Integer getBedrooms() { return bedrooms; }

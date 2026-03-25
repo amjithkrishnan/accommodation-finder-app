@@ -20,9 +20,12 @@ CREATE TABLE properties (
     description TEXT,
     property_type ENUM('APARTMENT', 'HOUSE', 'ROOM') NOT NULL,
     address VARCHAR(255) NOT NULL,
+    eircode VARCHAR(20),
     city VARCHAR(100) NOT NULL,
+    county VARCHAR(100),
     postal_code VARCHAR(20),
     country VARCHAR(100) DEFAULT 'Ireland',
+    furnish_type ENUM('FURNISHED', 'UNFURNISHED', 'PART_FURNISHED'),
     price DECIMAL(10, 2) NOT NULL,
     bedrooms INT NOT NULL,
     bathrooms INT NOT NULL,
@@ -48,6 +51,9 @@ CREATE TABLE property_media (
     media_id BIGINT PRIMARY KEY AUTO_INCREMENT,
     property_id BIGINT NOT NULL,
     media_url VARCHAR(500) NOT NULL,
+    thumbnail_url VARCHAR(500),
+    s3_key VARCHAR(500),
+    thumbnail_s3_key VARCHAR(500),
     media_type ENUM('IMAGE', 'VIDEO') NOT NULL,
     display_order INT DEFAULT 0,
     is_primary BOOLEAN DEFAULT FALSE,
@@ -133,6 +139,11 @@ CREATE TABLE amenity_master (
     is_active BOOLEAN DEFAULT TRUE
 );
 
+CREATE TABLE county (
+    code VARCHAR(5) PRIMARY KEY,
+    name VARCHAR(50) NOT NULL
+);
+
 -- Insert Property Types Master Data
 INSERT INTO property_type_master (type_name, is_active) VALUES
 ('Apartment', true),
@@ -151,3 +162,34 @@ INSERT INTO amenity_master (amenity_name, is_active) VALUES
 ('Garden', true),
 ('Balcony', true),
 ('Pet Friendly', true);
+
+-- Insert County Data
+IINSERT INTO county (code, name) VALUES
+('C', 'Cork'),
+('CE', 'Clare'),
+('CN', 'Cavan'),
+('CW', 'Carlow'),
+('D', 'Dublin'),
+('DL', 'Donegal'),
+('G', 'Galway'),
+('KE', 'Kildare'),
+('KK', 'Kilkenny'),
+('KY', 'Kerry'),
+('L', 'Limerick'),
+('LD', 'Longford'),
+('LH', 'Louth'),
+('LK', 'Limerick'),
+('LM', 'Leitrim'),
+('LS', 'Laois'),
+('MH', 'Meath'),
+('MN', 'Monaghan'),
+('MO', 'Mayo'),
+('OY', 'Offaly'),
+('RN', 'Roscommon'),
+('SO', 'Sligo'),
+('TA', 'Tipperary'),
+('WD', 'Waterford'),
+('WH', 'Westmeath'),
+('WX', 'Wexford'),
+('WW', 'Wicklow');
+

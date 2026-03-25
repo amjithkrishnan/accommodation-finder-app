@@ -39,10 +39,12 @@ function Header({ onSignIn }) {
                     
                     <Box sx={{ flexGrow: 1 }} />
                     
-                    {!isMobile && user && (
+                    {!isMobile ? (
+                        user ? (
+                        <>
                         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                             <Button 
-                                onClick={() => window.location.hash = '/listings'}
+                                onClick={() => window.location.hash = '/explore'}
                                 sx={{ 
                                     color: '#4B5563',
                                     textTransform: 'none',
@@ -95,64 +97,57 @@ function Header({ onSignIn }) {
                                 </Avatar>
                             </IconButton>
                         </Box>
-                    )}
-                    
-                    {!isMobile ? (
-                        <>
-                            {user ? (
-                                <>
-                                    <Popover
-                                        open={Boolean(userMenuAnchor)}
-                                        anchorEl={userMenuAnchor}
-                                        onClose={() => setUserMenuAnchor(null)}
-                                        anchorOrigin={{
-                                            vertical: 'bottom',
-                                            horizontal: 'right',
-                                        }}
-                                        transformOrigin={{
-                                            vertical: 'top',
-                                            horizontal: 'right',
-                                        }}
-                                        PaperProps={{
-                                            sx: {
-                                                mt: 1,
-                                                borderRadius: 2,
-                                                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                                                minWidth: 220,
-                                                p: 2
-                                            }
-                                        }}
-                                    >
-                                        <Box sx={{ textAlign: 'center' }}>
-                                            <Typography variant="body2" sx={{ color: '#6B7280', mb: 0.5 }}>
-                                                Logged in as
-                                            </Typography>
-                                            <Typography variant="body1" sx={{ color: '#169B62', fontWeight: 600 }}>
-                                                {user?.name || user?.email}
-                                            </Typography>
-                                        </Box>
-                                    </Popover>
-                                </>
-                            ) : (
-                                <Button 
-                                    variant="contained" 
-                                    onClick={onSignIn}
-                                    sx={{ 
-                                        bgcolor: '#169B62', 
-                                        color: 'white', 
-                                        fontWeight: '600',
-                                        textTransform: 'none',
-                                        px: 3,
-                                        py: 1,
-                                        borderRadius: 2,
-                                        boxShadow: 'none',
-                                        '&:hover': { bgcolor: '#0F7A4D', boxShadow: 'none' }
-                                    }}
-                                >
-                                    Sign In
-                                </Button>
-                            )}
+                        <Popover
+                            open={Boolean(userMenuAnchor)}
+                            anchorEl={userMenuAnchor}
+                            onClose={() => setUserMenuAnchor(null)}
+                            anchorOrigin={{
+                                vertical: 'bottom',
+                                horizontal: 'right',
+                            }}
+                            transformOrigin={{
+                                vertical: 'top',
+                                horizontal: 'right',
+                            }}
+                            PaperProps={{
+                                sx: {
+                                    mt: 1,
+                                    borderRadius: 2,
+                                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                    minWidth: 220,
+                                    p: 2
+                                }
+                            }}
+                        >
+                            <Box sx={{ textAlign: 'center' }}>
+                                <Typography variant="body2" sx={{ color: '#6B7280', mb: 0.5 }}>
+                                    Logged in as
+                                </Typography>
+                                <Typography variant="body1" sx={{ color: '#169B62', fontWeight: 600 }}>
+                                    {user?.name || user?.email}
+                                </Typography>
+                            </Box>
+                        </Popover>
                         </>
+                        ) : (
+                            <Button 
+                                variant="contained" 
+                                onClick={onSignIn}
+                                sx={{ 
+                                    bgcolor: '#169B62', 
+                                    color: 'white', 
+                                    fontWeight: '600',
+                                    textTransform: 'none',
+                                    px: 3,
+                                    py: 1,
+                                    borderRadius: 2,
+                                    boxShadow: 'none',
+                                    '&:hover': { bgcolor: '#0F7A4D', boxShadow: 'none' }
+                                }}
+                            >
+                                Sign In
+                            </Button>
+                        )
                     ) : (
                         <>
                             <Box sx={{ flexGrow: 1 }} />
@@ -169,7 +164,7 @@ function Header({ onSignIn }) {
                     <List>
                         {user && (
                             <>
-                                <ListItem button onClick={() => { window.location.hash = '/listings'; setMobileMenuOpen(false); }}><ListItemText primary="Explore Stays" /></ListItem>
+                                <ListItem button onClick={() => { window.location.hash = '/explore'; setMobileMenuOpen(false); }}><ListItemText primary="Explore Stays" /></ListItem>
                                 <ListItem button onClick={() => { window.location.hash = '/my-properties'; setMobileMenuOpen(false); }}><ListItemText primary="My Properties" /></ListItem>
                                 <ListItem button onClick={() => { window.location.hash = '/profile'; setMobileMenuOpen(false); }}><ListItemText primary="Profile" /></ListItem>
                                 <ListItem button onClick={handleLogout}>

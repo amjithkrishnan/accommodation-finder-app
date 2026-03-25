@@ -2,21 +2,36 @@ function App() {
     const { route, navigate } = useRouter();
     const { user, loading } = useAuth();
 
+    console.log('[App] route:', route, 'user:', user, 'loading:', loading);
+
     React.useEffect(() => {
         Router.init();
     }, []);
 
     React.useEffect(() => {
-        if (loading) return;
-        
-        // GuestOnly routes: redirect to /listings if logged in
-        if (user && (route === '/signin' || route === '/signup')) {
-            navigate('/listings');
+        console.log('[App useEffect] route:', route, 'user:', user, 'loading:', loading);
+        if (loading) {
+            console.log('[App] Still loading, skipping redirect');
             return;
         }
         
-        // RequireAuth routes: redirect to /signin if not logged in
-        if (!user && route === '/listings') {
+        const validRoutes = ['/', '/explore', '/property', '/signin', '/signup', '/dashboard', '/my-properties', '/add-property', '/profile'];
+        const protectedRoutes = ['/dashboard', '/my-properties', '/add-property', '/profile'];
+        
+        if (!validRoutes.includes(route)) {
+            console.log('[App] Invalid route:', route, 'redirecting to /404');
+            navigate('/404');
+            return;
+        }
+        
+        if (user && (route === '/signin' || route === '/signup')) {
+            console.log('[App] User logged in, redirecting from', route, 'to /explore');
+            navigate('/explore');
+            return;
+        }
+        
+        if (!user && protectedRoutes.includes(route)) {
+            console.log('[App] No user, redirecting from', route, 'to /signin');
             navigate('/signin');
         }
     }, [route, user, loading, navigate]);
@@ -33,9 +48,10 @@ function App() {
         <LoadingProvider>
             <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
                 <div style={{ flex: 1 }}>
-                    {(route === '/' || route === '/listings') && <AccommodationList onSignIn={() => navigate('/signin')} onSignUp={() => navigate('/signup')} onViewDetails={() => navigate('/property')} />}
-                    {route === '/property' && <PropertyDetails onBack={() => navigate('/listings')} onSignIn={() => navigate('/signin')} />}
-                    {route === '/signin' && <SignIn onSignUp={() => navigate('/signup')} onForgotPassword={() => alert('Password reset link sent to your email')} onSuccess={() => navigate('/listings')} onBack={() => navigate('/')} />}
+                    {route === '/404' && <NotFound />}
+                    {(route === '/' || route === '/explore') && <AccommodationList onSignIn={() => navigate('/signin')} onSignUp={() => navigate('/signup')} onViewDetails={() => navigate('/property')} />}
+                    {route === '/property' && <PropertyDetails onBack={() => navigate('/explore')} onSignIn={() => navigate('/signin')} />}
+                    {route === '/signin' && <SignIn onSignUp={() => navigate('/signup')} onForgotPassword={() => alert('Password reset link sent to your email')} onSuccess={() => navigate('/explore')} onBack={() => navigate('/')} />}
                     {route === '/signup' && <SignUp onSuccess={() => navigate('/signin')} onSignIn={() => navigate('/signin')} onBack={() => navigate('/')} />}
                     {(route === '/dashboard' || route === '/my-properties') && <Dashboard onLogout={() => navigate('/')} />}
                     {route === '/add-property' && <AddProperty onBack={() => navigate('/my-properties')} />}

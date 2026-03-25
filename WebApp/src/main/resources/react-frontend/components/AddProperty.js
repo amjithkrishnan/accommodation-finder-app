@@ -4,9 +4,12 @@ function AddProperty({ onBack }) {
     const isEditMode = !!params.id;
     
     const [form, setForm] = React.useState({
-        title: '',
-        location: '',
+        address: '',
+        eircode: '',
+        city: '',
+        county: '',
         propertyType: '',
+        furnishType: '',
         price: '',
         bedrooms: '',
         bathrooms: '',
@@ -23,6 +26,7 @@ function AddProperty({ onBack }) {
 
     const [propertyTypes, setPropertyTypes] = React.useState([]);
     const [amenitiesList, setAmenitiesList] = React.useState([]);
+    const [counties, setCounties] = React.useState([]);
 
     React.useEffect(() => {
         fetchMasterData();
@@ -30,12 +34,12 @@ function AddProperty({ onBack }) {
 
     const fetchMasterData = async () => {
         try {
-            const [typesRes, amenitiesRes] = await Promise.all([
-                masterDataService.getPropertyTypes(),
-                masterDataService.getAmenities()
-            ]);
-            if (typesRes.status && typesRes.response) setPropertyTypes(typesRes.response.propertyTypes || []);
-            if (amenitiesRes.status && amenitiesRes.response) setAmenitiesList(amenitiesRes.response.amenities || []);
+            const res = await masterDataService.getAllMasterData();
+            if (res.status && res.response) {
+                setPropertyTypes(res.response.propertyTypes || []);
+                setAmenitiesList(res.response.amenities || []);
+                setCounties(res.response.counties || []);
+            }
         } catch (error) {
             console.error('Failed to fetch master data:', error);
         }
@@ -44,16 +48,21 @@ function AddProperty({ onBack }) {
     React.useEffect(() => {
         if (isEditMode && params.id) {
             const propertyData = JSON.parse(decodeURIComponent(params.data || '{}'));
+            console.log('Edit mode property data:', propertyData);
+            const flatAmenities = Array.isArray(propertyData.amenities) ? propertyData.amenities.flat(Infinity) : [];
             setForm({
-                title: propertyData.name || '',
-                location: propertyData.location || '',
+                address: propertyData.location || propertyData.address || '',
+                eircode: propertyData.eircode || '',
+                city: propertyData.city || '',
+                county: propertyData.county || '',
                 propertyType: propertyData.propertyType || '',
-                price: propertyData.price?.replace('€', '').replace(',', '').trim() || '',
-                bedrooms: propertyData.beds || '',
-                bathrooms: propertyData.bath || '',
+                furnishType: propertyData.furnishType || '',
+                price: propertyData.price?.toString().replace('€', '').replace(',', '').trim() || '',
+                bedrooms: propertyData.beds?.toString() || propertyData.bedrooms?.toString() || '',
+                bathrooms: propertyData.bath?.toString() || propertyData.bathrooms?.toString() || '',
                 availableFrom: propertyData.availableFrom || '',
                 description: propertyData.description || '',
-                amenities: propertyData.amenities || []
+                amenities: flatAmenities
             });
             if (propertyData.image) {
                 setImages([{ id: 1, preview: propertyData.image, existing: true }]);
@@ -68,12 +77,25 @@ function AddProperty({ onBack }) {
     };
 
     const handleAmenityToggle = (amenity) => {
-        setForm(prev => ({
-            ...prev,
-            amenities: prev.amenities.includes(amenity)
-                ? prev.amenities.filter(a => a !== amenity)
-                : [...prev.amenities, amenity]
-        }));
+        setForm(prev => {
+            // Always flatten to prevent nesting
+            let currentAmenities = [];
+            if (Array.isArray(prev.amenities)) {
+                currentAmenities = prev.amenities.flat(Infinity).filter(a => typeof a === 'string');
+            }
+            
+            const amenityExists = currentAmenities.includes(amenity);
+            const newAmenities = amenityExists
+                ? currentAmenities.filter(a => a !== amenity)
+                : [...currentAmenities, amenity];
+            
+            console.log('Amenities after toggle:', newAmenities);
+            
+            return {
+                ...prev,
+                amenities: newAmenities
+            };
+        });
     };
 
     const handleImageSelect = (e) => {
@@ -108,35 +130,28 @@ function AddProperty({ onBack }) {
         e.preventDefault();
         setLoading(true);
         try {
-            const formData = new FormData();
-            formData.append('title', form.title);
-            formData.append('location', form.location);
-            formData.append('city', form.location);
-            formData.append('propertyType', form.propertyType);
-            formData.append('price', parseFloat(form.price));
-            formData.append('bedrooms', parseInt(form.bedrooms));
-            formData.append('bathrooms', parseInt(form.bathrooms));
-            formData.append('availableFrom', form.availableFrom);
-            formData.append('description', form.description);
+            const flatAmenities = Array.isArray(form.amenities) ? form.amenities.flat(Infinity).filter(a => typeof a === 'string') : [];
             
-            form.amenities.forEach(amenity => formData.append('amenities', amenity));
-            
-            images.forEach(img => {
-                if (img.file && !img.existing) {
-                    formData.append('images', img.file);
-                }
-            });
-            
-            videos.forEach(vid => {
-                if (vid.file && !vid.existing) {
-                    formData.append('videos', vid.file);
-                }
-            });
+            const propertyData = {
+                title: form.address,
+                location: form.address,
+                city: form.city,
+                eircode: form.eircode,
+                county: form.county,
+                furnishType: form.furnishType,
+                propertyType: form.propertyType,
+                price: parseFloat(form.price),
+                bedrooms: parseInt(form.bedrooms),
+                bathrooms: parseInt(form.bathrooms),
+                availableFrom: form.availableFrom,
+                description: form.description,
+                amenities: flatAmenities
+            };
 
             if (isEditMode && params.id) {
-                await propertyService.updateProperty(params.id, formData);
+                await propertyService.updateProperty(params.id, propertyData);
             } else {
-                await propertyService.createProperty(formData);
+                await propertyService.createProperty(propertyData);
             }
             
             navigate('/my-properties');
@@ -151,11 +166,15 @@ function AddProperty({ onBack }) {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: '#F5F6F7' }}>
             <Header />
+            <Box sx={{ bgcolor: 'white', borderBottom: '1px solid #E5E7EB', position: 'sticky', top: 64, zIndex: 9 }}>
+                <Container maxWidth="lg" sx={{ py: 1.5 }}>
+                    <Breadcrumb items={[
+                        { label: 'My Properties', path: '/my-properties' },
+                        { label: isEditMode ? 'Edit Property' : 'Add New Property' }
+                    ]} />
+                </Container>
+            </Box>
             <Container maxWidth="lg" sx={{ py: 4 }}>
-                <Breadcrumb items={[
-                    { label: 'My Properties', path: '/my-properties' },
-                    { label: isEditMode ? 'Edit Property' : 'Add New Property' }
-                ]} />
                 <Box sx={{ mb: 4 }}>
                     <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#12321A', mb: 1 }}>
                         {isEditMode ? 'Edit Property' : 'Add New Property'}
@@ -167,17 +186,32 @@ function AddProperty({ onBack }) {
 
                 <Box component="form" onSubmit={handleSubmit} sx={{ bgcolor: 'white', borderRadius: 3, boxShadow: 2, p: 4 }}>
                     {/* Basic Info */}
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#169B62', mb: 2 }}>Basic Information</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#169B62', mb: 2 }}>Property Address</Typography>
                     <Grid container spacing={2} sx={{ mb: 4 }}>
-                        <Grid item xs={12} md={6}>
-                            <TextField fullWidth label="Property Title" name="title" value={form.title} onChange={handleChange} required error={!!errors.title} helperText={errors.title} />
+                        <Grid item xs={12}>
+                            <TextField fullWidth label="Address" name="address" value={form.address} onChange={handleChange} required error={!!errors.address} helperText={errors.address} />
                         </Grid>
                         <Grid item xs={12} md={6}>
-                            <TextField fullWidth label="Location" name="location" value={form.location} onChange={handleChange} required error={!!errors.location} helperText={errors.location} />
+                            <TextField fullWidth label="Eircode" name="eircode" value={form.eircode} onChange={handleChange} required error={!!errors.eircode} helperText={errors.eircode} />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <TextField fullWidth label="City" name="city" value={form.city} onChange={handleChange} required error={!!errors.city} helperText={errors.city} />
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <TextField fullWidth select label="County" name="county" value={form.county} onChange={handleChange} required error={!!errors.county} helperText={errors.county}>
+                                {counties.map(county => <MenuItem key={county} value={county}>{county}</MenuItem>)}
+                            </TextField>
                         </Grid>
                         <Grid item xs={12} md={6}>
                             <TextField fullWidth select label="Property Type" name="propertyType" value={form.propertyType} onChange={handleChange} required error={!!errors.propertyType} helperText={errors.propertyType}>
                                 {propertyTypes.map(type => <MenuItem key={type} value={type}>{type}</MenuItem>)}
+                            </TextField>
+                        </Grid>
+                        <Grid item xs={12} md={6}>
+                            <TextField fullWidth select label="Furnish Type" name="furnishType" value={form.furnishType} onChange={handleChange} required error={!!errors.furnishType} helperText={errors.furnishType}>
+                                <MenuItem value="Furnished">Furnished</MenuItem>
+                                <MenuItem value="Unfurnished">Unfurnished</MenuItem>
+                                <MenuItem value="Part Furnished">Part Furnished</MenuItem>
                             </TextField>
                         </Grid>
                         <Grid item xs={12} md={6}>
@@ -205,23 +239,27 @@ function AddProperty({ onBack }) {
                     {/* Amenities */}
                     <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#169B62', mb: 2 }}>Amenities</Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 4 }}>
-                        {amenitiesList.map(amenity => (
-                            <Button
-                                key={amenity}
-                                onClick={() => handleAmenityToggle(amenity)}
-                                variant={form.amenities.includes(amenity) ? 'contained' : 'outlined'}
-                                sx={{
-                                    textTransform: 'none',
-                                    borderRadius: 2,
-                                    bgcolor: form.amenities.includes(amenity) ? '#169B62' : 'transparent',
-                                    color: form.amenities.includes(amenity) ? 'white' : '#169B62',
-                                    borderColor: '#169B62',
-                                    '&:hover': { bgcolor: form.amenities.includes(amenity) ? '#0F7A4D' : '#E8F5F0' }
-                                }}
-                            >
-                                {amenity}
-                            </Button>
-                        ))}
+                        {amenitiesList.map(amenity => {
+                            const flatAmenities = Array.isArray(form.amenities) ? form.amenities.flat(Infinity) : [];
+                            const isSelected = flatAmenities.includes(amenity);
+                            return (
+                                <Button
+                                    key={amenity}
+                                    onClick={() => handleAmenityToggle(amenity)}
+                                    variant={isSelected ? 'contained' : 'outlined'}
+                                    sx={{
+                                        textTransform: 'none',
+                                        borderRadius: 2,
+                                        bgcolor: isSelected ? '#169B62' : 'transparent',
+                                        color: isSelected ? 'white' : '#169B62',
+                                        borderColor: '#169B62',
+                                        '&:hover': { bgcolor: isSelected ? '#0F7A4D' : '#E8F5F0' }
+                                    }}
+                                >
+                                    {amenity}
+                                </Button>
+                            );
+                        })}
                     </Box>
 
                     {/* Media Upload */}

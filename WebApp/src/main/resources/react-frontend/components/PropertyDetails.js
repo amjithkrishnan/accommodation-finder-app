@@ -1,30 +1,56 @@
 function PropertyDetails({ onBack, onSignIn }) {
     const { Box, Container, Grid, Card, CardContent, CardMedia, Typography, Button, Avatar, Tabs, Tab, Chip, useMediaQuery, useTheme } = MaterialUI;
+    const { params } = useRouter();
     
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     
-    const [mainImage, setMainImage] = React.useState('https://via.placeholder.com/800x500?text=Main+Property');
+    const [property, setProperty] = React.useState(null);
+    const [loading, setLoading] = React.useState(true);
+    const [mainImage, setMainImage] = React.useState('');
     const [mainMediaType, setMainMediaType] = React.useState('image');
     const [activeTab, setActiveTab] = React.useState(0);
     
-    const media = [
-        { url: 'https://via.placeholder.com/800x500?text=Image+1', type: 'image' },
-        { url: 'https://via.placeholder.com/800x500?text=Image+2', type: 'image' },
-        { url: 'https://via.placeholder.com/800x500?text=Image+3', type: 'image' },
-        { url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', type: 'video' },
-        { url: 'https://via.placeholder.com/800x500?text=Image+4', type: 'image' },
-        { url: 'https://via.placeholder.com/800x500?text=Image+5', type: 'image' },
-        { url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', type: 'video' },
-        { url: 'https://via.placeholder.com/800x500?text=Image+6', type: 'image' }
-    ];
-
-    const similarListings = [
-        { id: 1, name: 'Cozy Studio', price: '€950', beds: 1, bath: 1, city: 'Dublin', image: 'https://via.placeholder.com/300x200?text=Studio' },
-        { id: 2, name: '3-Bed House', price: '€1,800', beds: 3, bath: 2, city: 'Cork', image: 'https://via.placeholder.com/300x200?text=House' }
-    ];
-
-    const amenities = ['Balcony', 'Fully Furnished', 'Modern Kitchen', 'High-Speed Internet', 'In-Unit Laundry', 'Parking Available'];
+    React.useEffect(() => {
+        if (params.id) {
+            fetchProperty();
+        } else if (params.data) {
+            const propertyData = JSON.parse(decodeURIComponent(params.data));
+            setProperty(propertyData);
+            setMainImage(propertyData.image || 'https://via.placeholder.com/800x500?text=Property');
+            setLoading(false);
+        }
+    }, [params.id, params.data]);
+    
+    const fetchProperty = async () => {
+        try {
+            const response = await propertyService.getProperty(params.id);
+            if (response.status && response.response) {
+                setProperty(response.response);
+                setMainImage(response.response.image || 'https://via.placeholder.com/800x500?text=Property');
+            }
+        } catch (error) {
+            console.error('Failed to fetch property:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    if (loading) {
+        return (
+            <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography>Loading...</Typography>
+            </Box>
+        );
+    }
+    
+    if (!property) {
+        return (
+            <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Typography>Property not found</Typography>
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ 
@@ -147,12 +173,12 @@ function PropertyDetails({ onBack, onSignIn }) {
                                 {activeTab === 0 && (
                                     <Grid container spacing={2}>
                                         {[
-                                            { label: 'Beds', value: '2', icon: '🛏' },
-                                            { label: 'Bath', value: '1', icon: '🚿' },
-                                            { label: 'Property Type', value: 'Apartment', icon: '🏢' },
-                                            { label: 'Size', value: '820 sq.ft', icon: '📏' },
-                                            { label: 'Available From', value: 'May 1, 2024', icon: '📅' },
-                                            { label: 'Listing ID', value: 'DB-123456', icon: '🔖' }
+                                            { label: 'Beds', value: property.beds || property.bedrooms || 'N/A', icon: '🛏' },
+                                            { label: 'Bath', value: property.bath || property.bathrooms || 'N/A', icon: '🚿' },
+                                            { label: 'Property Type', value: property.propertyType || 'N/A', icon: '🏢' },
+                                            { label: 'Furnish Type', value: property.furnishType || 'N/A', icon: '🪑' },
+                                            { label: 'Available From', value: property.availableFrom || 'N/A', icon: '📅' },
+                                            { label: 'City', value: property.city || 'N/A', icon: '📍' }
                                         ].map((item, idx) => (
                                             <Grid item xs={12} sm={6} key={idx}>
                                                 <Card sx={{ p: 2, bgcolor: '#f0f9f5', boxShadow: 1 }}>
@@ -168,17 +194,13 @@ function PropertyDetails({ onBack, onSignIn }) {
 
                                 {activeTab === 1 && (
                                     <Typography variant="body1" sx={{ lineHeight: 1.8, color: '#555' }}>
-                                        This modern furnished apartment in Dublin offers a perfect blend of comfort and style. 
-                                        Located in the heart of the city, it features a spacious balcony with stunning city views, 
-                                        an open-concept kitchen with modern appliances, and a bright living area filled with natural light. 
-                                        The apartment is ideal for professionals or small families looking for a convenient and stylish 
-                                        living space in Dublin's vibrant city center. Close to public transport, shopping, and dining options.
+                                        {property.description || 'No description available.'}
                                     </Typography>
                                 )}
 
                                 {activeTab === 2 && (
                                     <Grid container spacing={2}>
-                                        {amenities.map((amenity, idx) => (
+                                        {(property.amenities || []).map((amenity, idx) => (
                                             <Grid item xs={12} sm={6} key={idx}>
                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                     <Box sx={{ 
@@ -204,8 +226,8 @@ function PropertyDetails({ onBack, onSignIn }) {
                             </Box>
                         </Card>
 
-                        {/* Similar Listings */}
-                        <Box sx={{ mb: 3 }}>
+                        {/* Similar Listings - Hidden for now */}
+                        {false && <Box sx={{ mb: 3 }}>
                             <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2, color: '#169B62' }}>Similar Listings</Typography>
                             <Box sx={{ 
                                 display: 'flex', 
@@ -242,7 +264,7 @@ function PropertyDetails({ onBack, onSignIn }) {
                                     </Card>
                                 ))}
                             </Box>
-                        </Box>
+                        </Box>}
                     </Grid>
 
                     {/* RIGHT - Property Summary (Sticky) */}
@@ -250,29 +272,30 @@ function PropertyDetails({ onBack, onSignIn }) {
                         <Box sx={{ position: isMobile ? 'relative' : 'sticky', top: isMobile ? 0 : 80 }}>
                             <Card sx={{ borderRadius: 3, boxShadow: 3, p: 3 }}>
                                 <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#169B62', mb: 1 }}>
-                                    €1,200 / month
+                                    {property.price} / month
                                 </Typography>
                                 <Typography variant="h6" sx={{ fontWeight: 'bold', mb: 2 }}>
-                                    Modern 2-Bed Apartment in Dublin
+                                    {property.name || property.title || 'Property'}
                                 </Typography>
 
                                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
-                                    <Chip icon={<span>🛏</span>} label="2 Beds" sx={{ bgcolor: '#f0f9f5' }} />
-                                    <Chip icon={<span>🚿</span>} label="1 Bath" sx={{ bgcolor: '#f0f9f5' }} />
-                                    <Chip icon={<span>🏢</span>} label="Apartment" sx={{ bgcolor: '#f0f9f5' }} />
-                                    <Chip icon={<span>📍</span>} label="Dublin" sx={{ bgcolor: '#f0f9f5' }} />
+                                    <Chip icon={<span>🛏</span>} label={`${property.beds || property.bedrooms || 0} Beds`} sx={{ bgcolor: '#f0f9f5' }} />
+                                    <Chip icon={<span>🚿</span>} label={`${property.bath || property.bathrooms || 0} Bath`} sx={{ bgcolor: '#f0f9f5' }} />
+                                    <Chip icon={<span>🏢</span>} label={property.propertyType || 'N/A'} sx={{ bgcolor: '#f0f9f5' }} />
+                                    <Chip icon={<span>📍</span>} label={property.city || 'N/A'} sx={{ bgcolor: '#f0f9f5' }} />
                                 </Box>
 
                                 <Typography variant="body2" sx={{ mb: 2, color: '#555' }}>
-                                    📍 Dublin, Ireland
+                                    📍 {property.location || property.address || 'Location not specified'}
                                 </Typography>
 
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, pb: 3, borderBottom: '1px solid #e0e0e0' }}>
-                                    <Typography sx={{ color: '#FF6600', fontWeight: 'bold' }}>⭐ 4.9</Typography>
-                                    <Typography variant="body2" color="text.secondary">(18 Reviews)</Typography>
+                                    <Typography variant="body2" color="text.secondary">Eircode: {property.eircode || 'N/A'}</Typography>
                                 </Box>
 
-                                {/* Agent Contact */}
+                                {/* Agent Contact - Hidden for now */}
+                                {false && (
+                                <Box>
                                 <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2 }}>Contact Agent</Typography>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                                     <Avatar sx={{ width: 56, height: 56, bgcolor: '#169B62' }}>SN</Avatar>
@@ -295,6 +318,8 @@ function PropertyDetails({ onBack, onSignIn }) {
                                 >
                                     Contact Agent
                                 </Button>
+                                </Box>
+                                )}
                             </Card>
                         </Box>
                     </Grid>

@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { minify } = require('terser');
 const babel = require('@babel/core');
 
@@ -18,8 +19,10 @@ fs.mkdirSync(buildDir, { recursive: true });
 const files = [
   'components/Router.js',
   'components/LoadingContext.js',
+  'services/csrfInterceptor.js',
   'services/authService.js',
   'services/propertyService.js',
+  'services/mediaUploadService.js',
   'services/mediaService.js',
   'services/masterDataService.js',
   'context/AuthContext.js',
@@ -27,6 +30,7 @@ const files = [
   'components/Breadcrumb.js',
   'components/Header.js',
   'components/Footer.js',
+  'components/NotFound.js',
   'components/PropertyDetails.js',
   'components/AccommodationList.js',
   'components/SignIn.js',
@@ -72,8 +76,8 @@ minify(transpiled.code, {
   },
   sourceMap: false
 }).then(result => {
-  // Write minified bundle
-  const hash = Date.now().toString(36);
+  // Write minified bundle with content-based hash
+  const hash = crypto.createHash('md5').update(result.code).digest('hex').substring(0, 8);
   const bundleName = `main.${hash}.js`;
   fs.writeFileSync(path.join(buildDir, bundleName), result.code);
 
@@ -129,6 +133,9 @@ minify(transpiled.code, {
   fs.copyFileSync('app-bg.png', path.join(buildDir, 'app-bg.png'));
   fs.copyFileSync('theme.css', path.join(buildDir, 'theme.css'));
   fs.copyFileSync('config.js', path.join(buildDir, 'config.js'));
+
+  // Create version file to force cache invalidation
+  fs.writeFileSync(path.join(buildDir, 'version.txt'), hash);
 
   console.log(`Build complete! Bundle: ${bundleName}`);
   console.log(`Mode: ${buildMode} (drop_console: ${dropConsole})`);

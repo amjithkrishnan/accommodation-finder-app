@@ -1,5 +1,18 @@
 const propertyService = {
-    createProperty: async (formData) => {
+    searchProperties: async (queryParams) => {
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/api/properties/search?${queryParams}`);
+        return response.data;
+    },
+
+    createProperty: async (propertyData) => {
+        const response = await axios.post(`${API_CONFIG.BASE_URL}/api/properties`, propertyData, { 
+            withCredentials: true,
+            headers: { 'Content-Type': 'application/json' }
+        });
+        return response.data;
+    },
+
+    createPropertyLegacy: async (formData) => {
         const response = await axios.post(`${API_CONFIG.BASE_URL}/api/properties`, formData, { 
             withCredentials: true,
             headers: { 'Content-Type': 'multipart/form-data' }

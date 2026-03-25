@@ -12,6 +12,9 @@ public class PropertyDTO {
     private String propertyType;
     private String location;
     private String city;
+    private String eircode;
+    private String county;
+    private String furnishType;
     private BigDecimal price;
     private Integer bedrooms;
     private Integer bathrooms;
@@ -34,6 +37,12 @@ public class PropertyDTO {
     public void setLocation(String location) { this.location = location; }
     public String getCity() { return city; }
     public void setCity(String city) { this.city = city; }
+    public String getEircode() { return eircode; }
+    public void setEircode(String eircode) { this.eircode = eircode; }
+    public String getCounty() { return county; }
+    public void setCounty(String county) { this.county = county; }
+    public String getFurnishType() { return furnishType; }
+    public void setFurnishType(String furnishType) { this.furnishType = furnishType; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
     public Integer getBedrooms() { return bedrooms; }

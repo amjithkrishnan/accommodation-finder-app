@@ -1,5 +1,6 @@
 function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
     const { Box, Typography, TextField, Button, Card, CardMedia, CardContent, Grid, Container, Chip, Avatar, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, Pagination, Menu, MenuItem, useMediaQuery, useTheme } = MaterialUI;
+    const { navigate } = useRouter();
     
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -16,15 +17,52 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
         moveInDate: ''
     });
     const [page, setPage] = React.useState(1);
+    const [accommodations, setAccommodations] = React.useState([]);
+    const [loading, setLoading] = React.useState(false);
+    const [totalPages, setTotalPages] = React.useState(0);
+    const [totalCount, setTotalCount] = React.useState(0);
+    const pageSize = 12;
 
-    const accommodations = [
-        { id: 1, name: 'Modern Apartment in City Center', city: 'Dublin', price: '€1,200', beds: 2, bath: 1, type: 'Apartment', image: 'https://via.placeholder.com/400x250?text=Apartment', description: 'Spacious apartment near all amenities', owner: 'John Doe', tag: 'For Rent' },
-        { id: 2, name: 'Cozy House with Garden', city: 'Cork', price: '€1,500', beds: 3, bath: 2, type: 'House', image: 'https://via.placeholder.com/400x250?text=House', description: 'Beautiful house with private garden', owner: 'Mary Smith', tag: 'For Rent' },
-        { id: 3, name: 'Shared Room in Student Area', city: 'Galway', price: '€450', beds: 1, bath: 1, type: 'Room', image: 'https://via.placeholder.com/400x250?text=Room', description: 'Perfect for students, close to university', owner: 'Tom Brown', tag: 'For Sharing' },
-        { id: 4, name: 'Luxury Penthouse', city: 'Dublin', price: '€2,500', beds: 4, bath: 3, type: 'Apartment', image: 'https://via.placeholder.com/400x250?text=Penthouse', description: 'Premium living with stunning views', owner: 'Sarah Lee', tag: 'For Rent' },
-        { id: 5, name: 'Family Home in Suburbs', city: 'Limerick', price: '€1,100', beds: 3, bath: 2, type: 'House', image: 'https://via.placeholder.com/400x250?text=Family+Home', description: 'Quiet neighborhood, family-friendly', owner: 'Mike Wilson', tag: 'For Rent' },
-        { id: 6, name: 'Studio Apartment', city: 'Cork', price: '€800', beds: 1, bath: 1, type: 'Apartment', image: 'https://via.placeholder.com/400x250?text=Studio', description: 'Compact and modern studio', owner: 'Emma Davis', tag: 'For Rent' }
-    ];
+    React.useEffect(() => {
+        fetchProperties();
+    }, [page]);
+
+    const fetchProperties = async () => {
+        setLoading(true);
+        try {
+            const params = new URLSearchParams();
+            if (searchLocation) params.append('location', searchLocation);
+            if (filters.propertyType) params.append('propertyType', filters.propertyType);
+            if (filters.minPrice) params.append('minPrice', filters.minPrice);
+            if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
+            if (filters.bedrooms) params.append('bedrooms', filters.bedrooms);
+            if (filters.moveInDate) params.append('availableFrom', filters.moveInDate);
+            params.append('page', page - 1);
+            params.append('size', pageSize);
+            
+            const response = await propertyService.searchProperties(params.toString());
+            if (response.status && response.response?.properties) {
+                setAccommodations(response.response.properties.content || response.response.properties);
+                setTotalCount(response.response.properties.totalElements || response.response.properties.length);
+                setTotalPages(response.response.properties.totalPages || Math.ceil((response.response.properties.length || 0) / pageSize));
+            }
+        } catch (error) {
+            console.error('Failed to fetch properties:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSearch = () => {
+        setPage(1);
+        fetchProperties();
+    };
+
+    const handleFilterApply = () => {
+        setFilterOpen(false);
+        setPage(1);
+        fetchProperties();
+    };
 
     const handleFilterReset = () => {
         setFilters({ propertyType: '', minPrice: '', maxPrice: '', bedrooms: '', moveInDate: '' });
@@ -100,6 +138,7 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                     </Box>
                     <Button 
                         variant="contained"
+                        onClick={handleSearch}
                         sx={{ 
                             minWidth: isMobile ? 80 : 120,
                             bgcolor: '#169B62',
@@ -135,7 +174,7 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                     </DialogContent>
                     <DialogActions sx={{ p: 2 }}>
                         <Button onClick={handleFilterReset} sx={{ color: '#6B7280' }}>Reset</Button>
-                        <Button variant="contained" onClick={() => setFilterOpen(false)} sx={{ bgcolor: '#169B62', '&:hover': { bgcolor: '#0F7A4D' } }}>Apply Filters</Button>
+                        <Button variant="contained" onClick={handleFilterApply} sx={{ bgcolor: '#169B62', '&:hover': { bgcolor: '#0F7A4D' } }}>Apply Filters</Button>
                     </DialogActions>
                 </Dialog>
 
@@ -149,7 +188,7 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                     mb: 3 
                 }}>
                     <Typography variant="body1" sx={{ color: '#4B5563', fontWeight: '600' }}>
-                        {accommodations.length} properties available
+                        {totalCount} properties available
                     </Typography>
                     <Box
                         onClick={(e) => setSortMenuAnchor(e.currentTarget)}
@@ -214,7 +253,20 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                 </Box>
 
                 <Grid container spacing={3}>
-                    {accommodations.map((acc) => (
+                    {loading ? (
+                        <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                                <Typography>Loading properties...</Typography>
+                            </Box>
+                        </Grid>
+                    ) : !accommodations || accommodations.length === 0 ? (
+                        <Grid item xs={12}>
+                            <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                                <Typography>No properties found</Typography>
+                            </Box>
+                        </Grid>
+                    ) : (
+                        accommodations.map((acc) => (
                         <Grid item xs={12} sm={6} md={4} lg={3} key={acc.id}>
                             <Card 
                                 sx={{ 
@@ -227,15 +279,18 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                                     transition: 'transform 0.2s, box-shadow 0.2s',
                                     '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 }
                                 }}
-                                onClick={onViewDetails}
+                                onClick={() => {
+                                    const propertyData = encodeURIComponent(JSON.stringify(acc));
+                                    navigate(`/property?id=${acc.id}&data=${propertyData}`);
+                                }}
                             >
-                                <CardMedia component="img" height="200" image={acc.image} alt={acc.name} />
+                                <CardMedia component="img" height="200" image={acc.image || 'https://via.placeholder.com/400x250?text=No+Image'} alt={acc.name} />
                                 <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
                                         <Typography variant="h6" sx={{ fontWeight: 'bold', color: '#169B62' }}>
                                             {acc.price} / month
                                         </Typography>
-                                        <Chip label={acc.tag} size="small" sx={{ bgcolor: '#FF883E', color: 'white', fontWeight: 'bold' }} />
+                                        <Chip label="For Rent" size="small" sx={{ bgcolor: '#FF883E', color: 'white', fontWeight: 'bold' }} />
                                     </Box>
                                     <Typography variant="body1" sx={{ fontWeight: 'bold', mb: 1 }}>
                                         {acc.name}
@@ -244,25 +299,24 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                                         🛏 {acc.beds} Beds • 🚿 {acc.bath} Bath
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                                        {acc.type} • {acc.city}
+                                        {acc.propertyType} • {acc.location}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                         {acc.description}
                                     </Typography>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 'auto' }}>
-                                        <Avatar sx={{ width: 32, height: 32, bgcolor: '#169B62' }}>{acc.owner[0]}</Avatar>
-                                        <Typography variant="caption">{acc.owner}</Typography>
-                                    </Box>
                                 </CardContent>
                             </Card>
                         </Grid>
-                    ))}
+                        ))
+                    )}
                 </Grid>
 
                 {/* Pagination */}
+                {totalPages > 1 && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '150px', mt: 5, mb: 0 }}>
-                    <Pagination count={5} page={page} onChange={(e, value) => setPage(value)} color="primary" sx={{ '& .MuiPaginationItem-root': { color: '#169B62' } }} />
+                    <Pagination count={totalPages} page={page} onChange={(e, value) => setPage(value)} color="primary" sx={{ '& .MuiPaginationItem-root': { color: '#169B62' } }} />
                 </Box>
+                )}
             </Container>
         </Box>
     );

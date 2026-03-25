@@ -1,9 +1,11 @@
 package com.example.serviceapp.controller;
 
+import com.example.serviceapp.dto.MediaUploadDTO;
+import com.example.serviceapp.dto.ResponseDTO;
 import com.example.serviceapp.dto.UserDTO;
-import com.example.serviceapp.model.PropertyMedia;
-import com.example.serviceapp.repository.PropertyMediaRepository;
+import com.example.serviceapp.service.S3Service;
 import com.example.serviceapp.service.StorageService;
+import com.example.serviceapp.util.ImageThumbnailUtil;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -13,80 +15,138 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.ByteArrayInputStream;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/media")
+@RequestMapping("/api/uploads")
 @CrossOrigin(origins = "http://localhost:8080", allowCredentials = "true")
 public class MediaUploadController {
 
     @Autowired
     @Qualifier("s3StorageService")
-    private StorageService storageService;
+    private S3Service s3Service;
 
     @Autowired
-    private PropertyMediaRepository propertyMediaRepository;
+    private software.amazon.awssdk.services.s3.S3Client s3Client;
 
-    @PostMapping("/upload")
-    public ResponseEntity<?> uploadMedia(@RequestParam("file") MultipartFile file,
-                                         @RequestParam("propertyId") Long propertyId,
-                                         @RequestParam("mediaType") String mediaType,
-                                         HttpSession session) {
+    @Value("${app.storage.mode}")
+    private String storageMode;
+
+    @Value("${aws.s3.bucket-name:}")
+    private String bucketName;
+
+    private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+    private static final long MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
+    private static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png");
+    private static final List<String> ALLOWED_VIDEO_TYPES = Arrays.asList("video/mp4", "video/mpeg", "video/quicktime");
+
+    @PostMapping("/image")
+    public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, HttpSession session) {
         try {
             UserDTO user = (UserDTO) session.getAttribute("USER");
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Not authenticated"));
+                    .body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
             }
 
-            StorageService storage = storageService;
-            String folder = mediaType.equals("VIDEO") ? "videos" : "images";
-            String fileUrl = storage.uploadFile(file, folder);
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ResponseDTO.failed("File is empty", "EMPTY_FILE"));
+            }
 
-            PropertyMedia media = new PropertyMedia();
-            media.setPropertyId(propertyId);
-            media.setMediaUrl(fileUrl);
-            media.setMediaType(PropertyMedia.MediaType.valueOf(mediaType));
-            propertyMediaRepository.save(media);
+            if (file.getSize() > MAX_IMAGE_SIZE) {
+                return ResponseEntity.badRequest()
+                    .body(ResponseDTO.failed("File size exceeds 5MB limit", "FILE_TOO_LARGE"));
+            }
 
-            Map<String, Object> response = new HashMap<>();
-            response.put("status", "success");
-            response.put("url", fileUrl);
-            response.put("mediaId", media.getMediaId());
+            if (!ALLOWED_IMAGE_TYPES.contains(file.getContentType())) {
+                return ResponseEntity.badRequest()
+                    .body(ResponseDTO.failed("Invalid file type. Only JPG, JPEG, PNG allowed", "INVALID_FILE_TYPE"));
+            }
 
-            return ResponseEntity.ok(response);
+            String fileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
+            String s3Key = "properties/" + fileName;
+            
+            byte[] originalBytes = file.getBytes();
+            String originalUrl = uploadToS3(originalBytes, s3Key, file.getContentType());
+
+            byte[] thumbnailBytes = ImageThumbnailUtil.generateThumbnail(originalBytes);
+            String thumbnailKey = "properties/thumbnails/" + fileName;
+            String thumbnailUrl = uploadToS3(thumbnailBytes, thumbnailKey, "image/jpeg");
+
+            MediaUploadDTO uploadDTO = new MediaUploadDTO(
+                originalUrl, thumbnailUrl, s3Key, thumbnailKey,
+                "IMAGE", file.getOriginalFilename(), file.getSize()
+            );
+
+            return ResponseEntity.ok(ResponseDTO.success(uploadDTO));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+                .body(ResponseDTO.failed("Failed to upload image: " + e.getMessage(), "UPLOAD_FAILED"));
         }
     }
 
-    @GetMapping("/presigned-url")
-    public ResponseEntity<?> getPresignedUrl(@RequestParam("fileName") String fileName,
-                                             @RequestParam("contentType") String contentType,
-                                             @RequestParam("mediaType") String mediaType,
-                                             HttpSession session) {
+    @PostMapping("/video")
+    public ResponseEntity<?> uploadVideo(@RequestParam("file") MultipartFile file, HttpSession session) {
         try {
             UserDTO user = (UserDTO) session.getAttribute("USER");
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body(Map.of("status", "error", "message", "Not authenticated"));
+                    .body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
             }
 
-            if (storageService == null) {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                        .body(Map.of("status", "error", "message", "S3 service not available"));
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(ResponseDTO.failed("File is empty", "EMPTY_FILE"));
             }
 
-            String folder = mediaType.equals("VIDEO") ? "videos" : "images";
-            com.example.serviceapp.service.S3Service s3 = (com.example.serviceapp.service.S3Service) storageService;
-            String presignedUrl = s3.generatePresignedUrl(fileName, contentType, folder);
+            if (file.getSize() > MAX_VIDEO_SIZE) {
+                return ResponseEntity.badRequest()
+                    .body(ResponseDTO.failed("File size exceeds 50MB limit", "FILE_TOO_LARGE"));
+            }
 
-            return ResponseEntity.ok(Map.of("status", "success", "url", presignedUrl));
+            if (!ALLOWED_VIDEO_TYPES.contains(file.getContentType())) {
+                return ResponseEntity.badRequest()
+                    .body(ResponseDTO.failed("Invalid file type. Only MP4, MPEG, MOV allowed", "INVALID_FILE_TYPE"));
+            }
+
+            String fileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
+            String s3Key = "properties/videos/" + fileName;
+            
+            String videoUrl = uploadToS3(file.getBytes(), s3Key, file.getContentType());
+
+            MediaUploadDTO uploadDTO = new MediaUploadDTO(
+                videoUrl, null, s3Key, null,
+                "VIDEO", file.getOriginalFilename(), file.getSize()
+            );
+
+            return ResponseEntity.ok(ResponseDTO.success(uploadDTO));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("status", "error", "message", e.getMessage()));
+                .body(ResponseDTO.failed("Failed to upload video: " + e.getMessage(), "UPLOAD_FAILED"));
         }
+    }
+
+    private String uploadToS3(byte[] fileBytes, String key, String contentType) {
+        if ("s3".equals(storageMode)) {
+            software.amazon.awssdk.core.sync.RequestBody requestBody = 
+                software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileBytes);
+            
+            software.amazon.awssdk.services.s3.model.PutObjectRequest putRequest = 
+                software.amazon.awssdk.services.s3.model.PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(key)
+                    .contentType(contentType)
+                    .build();
+            
+            s3Client.putObject(putRequest, requestBody);
+            return String.format("https://%s.s3.eu-west-1.amazonaws.com/%s", bucketName, key);
+        }
+        throw new RuntimeException("Only S3 storage mode supported for separate uploads");
     }
 }

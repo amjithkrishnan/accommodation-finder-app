@@ -1,93 +1,459 @@
-# x25139088-cpp-project
+# AccommodateMe - Property Rental Platform
 
+A full-stack property rental application built with React (frontend) and Spring Boot (backend).
 
+## Architecture
 
-## Getting started
+- **WebApp**: Gateway service (Port 8080) - Serves React frontend and proxies API requests
+- **ServiceApp**: Backend service (Port 8081) - Handles business logic, database operations, and file storage
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Technology Stack
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+### Frontend
+- React 18 (CDN-based, no npm dependencies in production)
+- Material-UI 5
+- Axios for HTTP requests
+- Custom build system with Babel & Terser
 
-## Add your files
+### Backend
+- Spring Boot 3.2.0
+- Spring Security (CSRF protection)
+- Spring Session JDBC (MySQL)
+- MySQL Database
+- AWS S3 / Local File Storage
+- Maven
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Prerequisites
 
+- Java 21
+- Node.js 18+ (for building React app)
+- MySQL 8.0+
+- Maven 3.8+
+- AWS Account (optional, for S3 storage)
+
+## Database Setup
+
+```sql
+CREATE DATABASE accommodateme;
+USE accommodateme;
+
+-- Tables will be auto-created by Spring Boot JPA
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/cpp-group1972410/x25139088-cpp-project.git
-git branch -M main
-git push -uf origin main
+
+## Configuration
+
+### ServiceApp Configuration
+Edit `ServiceApp/src/main/resources/application.properties`:
+
+```properties
+# Database
+spring.datasource.url=jdbc:mysql://localhost:3306/accommodateme
+spring.datasource.username=root
+spring.datasource.password=your_password
+
+# Storage Mode (s3 or local)
+app.storage.mode=local
+app.storage.local.path=./uploads
+
+# AWS S3 (if using S3)
+aws.s3.bucket-name=your-bucket
+aws.s3.region=eu-west-1
+aws.access-key-id=your-key
+aws.secret-access-key=your-secret
 ```
 
-## Integrate with your tools
+### WebApp Configuration
+Edit `WebApp/src/main/resources/application.properties`:
 
-* [Set up project integrations](https://gitlab.com/cpp-group1972410/x25139088-cpp-project/-/settings/integrations)
+```properties
+server.port=8080
+serviceapp.url=http://localhost:8081
+serviceapp.secret=your-shared-secret
+```
 
-## Collaborate with your team
+Edit `WebApp/src/main/resources/react-frontend/config.js`:
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+```javascript
+const API_CONFIG = {
+    BASE_URL: 'http://localhost:8080'
+};
+```
 
-## Test and Deploy
+## Building the Application
 
-Use the built-in continuous integration in GitLab.
+### Build ServiceApp
+```bash
+cd ServiceApp
+mvn clean package -DskipTests
+```
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+### Build WebApp
+```bash
+cd WebApp
+mvn clean package -DskipTests
+```
 
-***
+This will:
+1. Run `npm install` in react-frontend
+2. Run `npm run build` to create production bundle
+3. Copy build output to `target/classes/static`
+4. Package everything into `webapp.jar`
 
-# Editing this README
+## Running the Application
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### Start ServiceApp (Backend)
+```bash
+cd ServiceApp/target
+java -jar serviceapp.jar
+```
 
-## Suggestions for a good README
+### Start WebApp (Gateway)
+```bash
+cd WebApp/target
+java -jar webapp.jar
+```
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Access the application at: `http://localhost:8080`
 
-## Name
-Choose a self-explaining name for your project.
+## Development Workflow
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### React Development
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+#### File Structure
+```
+WebApp/src/main/resources/react-frontend/
+├── components/          # React components
+├── services/           # API service layers
+├── context/            # React context providers
+├── build.js            # Custom build script
+├── package.json        # Build dependencies only
+└── index.html          # Development HTML (loads source files)
+```
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+#### Adding New Components
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+1. Create component file in `components/`:
+```javascript
+function MyComponent() {
+    const { Typography, Box } = MaterialUI;
+    return (
+        <Box>
+            <Typography>Hello World</Typography>
+        </Box>
+    );
+}
+```
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+2. Add to `build.js` file list:
+```javascript
+const files = [
+    // ... existing files
+    'components/MyComponent.js',
+    'components/App.js'  // App.js must be last
+];
+```
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+3. Rebuild:
+```bash
+cd WebApp
+mvn package -DskipTests
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+#### Working with ResponseDTO
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+All API responses follow this structure:
+```javascript
+{
+    status: boolean,      // true for success, false for error
+    response: object,     // actual data (null on error)
+    error: boolean,       // true if error occurred
+    errorMsg: string,     // error message (null on success)
+    errorCode: string     // error code (null on success)
+}
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Example usage:
+```javascript
+const data = await authService.login(email, password);
+if (data.status) {
+    // Success - data is in data.response
+    console.log(data.response);
+} else {
+    // Error - message is in data.errorMsg
+    console.error(data.errorMsg, data.errorCode);
+}
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+#### CSRF Protection
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+CSRF token is automatically handled by `csrfInterceptor.js`:
+- Token fetched on app load from `/api/csrf`
+- Automatically added to POST/PUT/DELETE requests
+- Stored in `XSRF-TOKEN` cookie
+- Sent in `X-XSRF-TOKEN` header
+
+#### Build Modes
+
+Production build (console logs removed):
+```bash
+npm run build
+# or
+npm run build:prod
+```
+
+Development build (console logs kept):
+```bash
+npm run build:dev
+```
+
+### Spring Boot Development
+
+#### Creating New REST Endpoints
+
+1. Create DTO:
+```java
+package com.example.serviceapp.dto;
+
+public class ResponseDTO {
+    private boolean status;
+    private Object response;
+    private boolean error;
+    private String errorMsg;
+    private String errorCode;
+
+    public static ResponseDTO success(Object data) {
+        return new ResponseDTO(true, data, false, null, null);
+    }
+
+    public static ResponseDTO failed(String msg, String code) {
+        return new ResponseDTO(false, null, true, msg, code);
+    }
+}
+```
+
+2. Create Controller:
+```java
+@RestController
+@RequestMapping("/api/myresource")
+@CrossOrigin(origins = "http://localhost:8080", allowCredentials = "true")
+public class MyController {
+    
+    @GetMapping
+    public ResponseEntity<ResponseDTO> getAll(HttpSession session) {
+        UserDTO user = (UserDTO) session.getAttribute("USER");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
+        }
+        
+        // Your logic here
+        return ResponseEntity.ok(ResponseDTO.success(data));
+    }
+}
+```
+
+3. Add proxy mapping in WebApp (if needed):
+```java
+@RequestMapping(value = "/myresource/**", method = RequestMethod.GET)
+public ResponseEntity<?> proxyMyResource(HttpServletRequest request) {
+    return proxyRequest(request, null);
+}
+```
+
+#### Session Management
+
+User session is stored in MySQL via Spring Session JDBC:
+```java
+// Store user in session
+UserDTO userDTO = new UserDTO(user.getId(), user.getEmail(), user.getName());
+session.setAttribute("USER", userDTO);
+
+// Retrieve user from session
+UserDTO user = (UserDTO) session.getAttribute("USER");
+
+// Check if logged in
+boolean isLoggedIn = session.getAttribute("USER") != null;
+
+// Logout
+session.invalidate();
+```
+
+#### CSRF Configuration
+
+WebApp has CSRF enabled, ServiceApp has it disabled:
+
+**WebApp SecurityConfig:**
+```java
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+    requestHandler.setCsrfRequestAttributeName("_csrf");
+
+    http
+        .csrf(csrf -> csrf
+            .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+            .csrfTokenRequestHandler(requestHandler)
+        )
+        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+
+    return http.build();
+}
+```
+
+**ServiceApp SecurityConfig:**
+```java
+@Bean
+public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    http
+        .csrf(csrf -> csrf.disable())
+        .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+    
+    return http.build();
+}
+```
+
+#### File Upload Handling
+
+```java
+@PostMapping(consumes = "multipart/form-data")
+public ResponseEntity<?> uploadFile(
+        @RequestParam("file") MultipartFile file,
+        @RequestParam("title") String title,
+        HttpSession session) {
+    
+    UserDTO user = (UserDTO) session.getAttribute("USER");
+    if (user == null) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
+    }
+    
+    // Upload to storage
+    String fileUrl = storageService.uploadFile(file, "folder");
+    
+    return ResponseEntity.ok(ResponseDTO.success(Map.of("url", fileUrl)));
+}
+```
+
+## Common Issues & Solutions
+
+### Issue: Console logs not appearing
+**Cause**: Production build removes console logs via Terser
+**Solution**: Use development build or check browser Network tab
+
+### Issue: 403 Forbidden on POST requests
+**Cause**: Missing CSRF token
+**Solution**: Ensure `csrfInterceptor.js` is loaded before other services
+
+### Issue: Session not persisting
+**Cause**: Missing `withCredentials: true` in axios requests
+**Solution**: Add to all API calls:
+```javascript
+axios.get(url, { withCredentials: true })
+```
+
+### Issue: Component not found in production
+**Cause**: Component not added to `build.js` file list
+**Solution**: Add component to files array in `build.js`
+
+### Issue: Static files not in JAR
+**Cause**: Maven resource phase timing
+**Solution**: Verify `copy-frontend-build` phase is `prepare-package`
+
+### Issue: CORS errors
+**Cause**: Missing CORS configuration
+**Solution**: Add `@CrossOrigin` to controllers:
+```java
+@CrossOrigin(origins = "http://localhost:8080", allowCredentials = "true")
+```
+
+## API Endpoints
+
+### Authentication
+- `POST /api/auth/register` - Register new user
+- `POST /api/auth/login` - Login
+- `POST /api/auth/logout` - Logout
+- `GET /api/auth/me` - Get current user
+- `POST /api/auth/forgot-password` - Reset password
+
+### Properties
+- `GET /api/properties/user` - Get user's properties
+- `POST /api/properties` - Create property
+- `PUT /api/properties/{id}` - Update property
+- `DELETE /api/properties/{id}` - Delete property
+- `GET /api/properties/{id}` - Get property details
+
+### Master Data
+- `GET /api/master/property-types` - Get property types
+- `GET /api/master/amenities` - Get amenities list
+
+### CSRF
+- `GET /api/csrf` - Get CSRF token
+
+## Deployment
+
+### Production Build Checklist
+- [ ] Update `config.js` with production API URL
+- [ ] Set `app.storage.mode=s3` in ServiceApp
+- [ ] Configure AWS credentials
+- [ ] Update database connection strings
+- [ ] Change `serviceapp.secret` to secure value
+- [ ] Enable HTTPS
+- [ ] Configure proper CORS origins
+- [ ] Set up database backups
+- [ ] Configure logging
+
+### Environment Variables
+```bash
+# ServiceApp
+export SPRING_DATASOURCE_URL=jdbc:mysql://prod-db:3306/accommodateme
+export SPRING_DATASOURCE_USERNAME=prod_user
+export SPRING_DATASOURCE_PASSWORD=secure_password
+export AWS_ACCESS_KEY_ID=your_key
+export AWS_SECRET_ACCESS_KEY=your_secret
+
+# WebApp
+export SERVICEAPP_URL=http://serviceapp:8081
+export SERVICEAPP_SECRET=secure_shared_secret
+```
+
+## Testing
+
+### Manual Testing
+1. Register new user
+2. Login
+3. Create property with images
+4. Edit property
+5. Delete property
+6. Logout
+7. Verify session cleared
+
+### API Testing with cURL
+```bash
+# Register
+curl -X POST http://localhost:8080/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}' \
+  -c cookies.txt
+
+# Login
+curl -X POST http://localhost:8080/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"password123"}' \
+  -b cookies.txt -c cookies.txt
+
+# Get properties
+curl -X GET http://localhost:8080/api/properties/user \
+  -b cookies.txt
+```
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+This project is licensed under the MIT License.
+
+## Contributors
+
+- Amjith Krishnan UJ (x25139088)
+
+## Support
+
+For issues and questions, please create an issue in the GitLab repository.

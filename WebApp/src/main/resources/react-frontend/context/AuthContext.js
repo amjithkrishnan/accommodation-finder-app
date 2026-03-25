@@ -11,8 +11,10 @@ function AuthProvider({ children }) {
     const checkAuth = async () => {
         try {
             const data = await authService.me();
+            console.log('Auth check response:', data);
             if (data.status && data.response) {
                 if (data.response.authenticated && data.response.user) {
+                    console.log('Setting user:', data.response.user);
                     setUser(data.response.user);
                 } else {
                     setUser(null);
@@ -21,6 +23,7 @@ function AuthProvider({ children }) {
                 setUser(null);
             }
         } catch (err) {
+            console.error('Auth check error:', err);
             setUser(null);
         } finally {
             setLoading(false);

@@ -16,6 +16,15 @@ public class PropertyMedia {
     @Column(nullable = false, length = 500)
     private String mediaUrl;
 
+    @Column(length = 500)
+    private String thumbnailUrl;
+
+    @Column(length = 500)
+    private String s3Key;
+
+    @Column(length = 500)
+    private String thumbnailS3Key;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MediaType mediaType;
@@ -40,6 +49,12 @@ public class PropertyMedia {
     public void setPropertyId(Long propertyId) { this.propertyId = propertyId; }
     public String getMediaUrl() { return mediaUrl; }
     public void setMediaUrl(String mediaUrl) { this.mediaUrl = mediaUrl; }
+    public String getThumbnailUrl() { return thumbnailUrl; }
+    public void setThumbnailUrl(String thumbnailUrl) { this.thumbnailUrl = thumbnailUrl; }
+    public String getS3Key() { return s3Key; }
+    public void setS3Key(String s3Key) { this.s3Key = s3Key; }
+    public String getThumbnailS3Key() { return thumbnailS3Key; }
+    public void setThumbnailS3Key(String thumbnailS3Key) { this.thumbnailS3Key = thumbnailS3Key; }
     public MediaType getMediaType() { return mediaType; }
     public void setMediaType(MediaType mediaType) { this.mediaType = mediaType; }
     public Integer getDisplayOrder() { return displayOrder; }

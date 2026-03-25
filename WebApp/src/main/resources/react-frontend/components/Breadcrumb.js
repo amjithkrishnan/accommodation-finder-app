@@ -3,7 +3,7 @@ function Breadcrumb({ items }) {
     const { navigate } = useRouter();
 
     return (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
             {items.map((item, index) => (
                 <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {item.path ? (
