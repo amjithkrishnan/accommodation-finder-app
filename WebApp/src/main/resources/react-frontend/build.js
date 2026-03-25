@@ -20,6 +20,7 @@ const files = [
   'components/Router.js',
   'components/LoadingContext.js',
   'services/csrfInterceptor.js',
+  'services/sanitizer.js',
   'services/authService.js',
   'services/propertyService.js',
   'services/mediaUploadService.js',

@@ -280,8 +280,7 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                                     '&:hover': { transform: 'translateY(-4px)', boxShadow: 4 }
                                 }}
                                 onClick={() => {
-                                    const propertyData = encodeURIComponent(JSON.stringify(acc));
-                                    navigate(`/property?id=${acc.id}&data=${propertyData}`);
+                                    navigate(`/property?id=${acc.id}`);
                                 }}
                             >
                                 <CardMedia component="img" height="200" image={acc.image || 'https://via.placeholder.com/400x250?text=No+Image'} alt={acc.name} />

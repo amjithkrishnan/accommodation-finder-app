@@ -13,21 +13,18 @@ function PropertyDetails({ onBack, onSignIn }) {
     
     React.useEffect(() => {
         if (params.id) {
-            fetchProperty();
-        } else if (params.data) {
-            const propertyData = JSON.parse(decodeURIComponent(params.data));
-            setProperty(propertyData);
-            setMainImage(propertyData.image || 'https://via.placeholder.com/800x500?text=Property');
-            setLoading(false);
+            fetchProperty(params.id);
         }
-    }, [params.id, params.data]);
+    }, [params.id]);
     
-    const fetchProperty = async () => {
+    const fetchProperty = async (id) => {
         try {
-            const response = await propertyService.getProperty(params.id);
+            const response = await propertyService.getProperty(id);
             if (response.status && response.response) {
-                setProperty(response.response);
-                setMainImage(response.response.image || 'https://via.placeholder.com/800x500?text=Property');
+                const p = response.response.property || response.response;
+                setProperty(p);
+                const firstImage = p.image || 'https://via.placeholder.com/800x500?text=Property';
+                setMainImage(firstImage);
             }
         } catch (error) {
             console.error('Failed to fetch property:', error);
@@ -111,7 +108,7 @@ function PropertyDetails({ onBack, onSignIn }) {
                             '&::-webkit-scrollbar': { height: 8 },
                             '&::-webkit-scrollbar-thumb': { bgcolor: '#169B62', borderRadius: 4 }
                         }}>
-                            {media.map((item, idx) => (
+                            {(property.mediaList || (property.image ? [{ url: property.image, type: 'image' }] : [])).map((item, idx) => (
                                 <Box
                                     key={idx}
                                     onClick={() => { setMainImage(item.url); setMainMediaType(item.type); }}

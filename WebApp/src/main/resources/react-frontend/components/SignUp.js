@@ -63,7 +63,7 @@ function SignUp({ onSuccess, onSignIn }) {
 
         setLoading(true);
         try {
-            const data = await authService.register(email, password);
+            const data = await authService.register(InputSanitizer.sanitizeEmail(email), password);
             console.log('Registration response:', data);
             if (data.status) {
                 alert('Registration successful! Please sign in.');

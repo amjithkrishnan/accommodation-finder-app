@@ -1,5 +1,6 @@
 package com.example.serviceapp.controller;
 
+import com.example.serviceapp.util.InputSanitizer;
 import com.example.serviceapp.dto.PropertyDTO;
 import com.example.serviceapp.dto.ResponseDTO;
 import com.example.serviceapp.dto.UserDTO;
@@ -59,24 +60,22 @@ public class PropertyController {
             }
 
             PropertyDTO propertyDTO = new PropertyDTO();
-            propertyDTO.setTitle((String) requestBody.get("title"));
-            propertyDTO.setDescription((String) requestBody.get("description"));
-            propertyDTO.setPropertyType((String) requestBody.get("propertyType"));
-            propertyDTO.setLocation((String) requestBody.get("location"));
-            propertyDTO.setCity((String) requestBody.get("city"));
-            propertyDTO.setEircode((String) requestBody.get("eircode"));
-            propertyDTO.setCounty((String) requestBody.get("county"));
-            propertyDTO.setFurnishType((String) requestBody.get("furnishType"));
+            propertyDTO.setTitle(InputSanitizer.sanitizeShort((String) requestBody.get("title"), "title"));
+            propertyDTO.setDescription(InputSanitizer.sanitizeLong((String) requestBody.get("description"), "description"));
+            propertyDTO.setPropertyType(InputSanitizer.sanitizeShort((String) requestBody.get("propertyType"), "propertyType"));
+            propertyDTO.setLocation(InputSanitizer.sanitizeShort((String) requestBody.get("location"), "location"));
+            propertyDTO.setCity(InputSanitizer.sanitizeShort((String) requestBody.get("city"), "city"));
+            propertyDTO.setEircode(InputSanitizer.sanitizeShort((String) requestBody.get("eircode"), "eircode"));
+            propertyDTO.setCounty(InputSanitizer.sanitizeShort((String) requestBody.get("county"), "county"));
+            propertyDTO.setFurnishType(InputSanitizer.sanitizeShort((String) requestBody.get("furnishType"), "furnishType"));
             propertyDTO.setPrice(new BigDecimal(requestBody.get("price").toString()));
             propertyDTO.setBedrooms(Integer.parseInt(requestBody.get("bedrooms").toString()));
             propertyDTO.setBathrooms(Integer.parseInt(requestBody.get("bathrooms").toString()));
             propertyDTO.setAvailableFrom(LocalDate.parse((String) requestBody.get("availableFrom")));
             
             Object amenitiesObj = requestBody.get("amenities");
-            System.out.println("Amenities object type: " + (amenitiesObj != null ? amenitiesObj.getClass().getName() : "null"));
-            System.out.println("Amenities value: " + amenitiesObj);
             if (amenitiesObj instanceof List) {
-                propertyDTO.setAmenities((List<String>) amenitiesObj);
+                propertyDTO.setAmenities(InputSanitizer.sanitizeList((List<String>) amenitiesObj, "amenities"));
             }
 
             Property property = propertyService.createProperty(propertyDTO, user.getId());
@@ -135,22 +134,21 @@ public class PropertyController {
             }
 
             PropertyDTO propertyDTO = new PropertyDTO();
-            propertyDTO.setTitle(title);
-            propertyDTO.setDescription(description);
-            propertyDTO.setPropertyType(propertyType);
-            propertyDTO.setLocation(location);
-            propertyDTO.setCity(city);
-            propertyDTO.setEircode(eircode);
-            propertyDTO.setCounty(county);
-            propertyDTO.setFurnishType(furnishType);
+            propertyDTO.setTitle(InputSanitizer.sanitizeShort(title, "title"));
+            propertyDTO.setDescription(InputSanitizer.sanitizeLong(description, "description"));
+            propertyDTO.setPropertyType(InputSanitizer.sanitizeShort(propertyType, "propertyType"));
+            propertyDTO.setLocation(InputSanitizer.sanitizeShort(location, "location"));
+            propertyDTO.setCity(InputSanitizer.sanitizeShort(city, "city"));
+            propertyDTO.setEircode(InputSanitizer.sanitizeShort(eircode, "eircode"));
+            propertyDTO.setCounty(InputSanitizer.sanitizeShort(county, "county"));
+            propertyDTO.setFurnishType(InputSanitizer.sanitizeShort(furnishType, "furnishType"));
             propertyDTO.setPrice(price);
             propertyDTO.setBedrooms(bedrooms);
             propertyDTO.setBathrooms(bathrooms);
             propertyDTO.setAvailableFrom(LocalDate.parse(availableFrom));
-            propertyDTO.setAmenities(amenities);
+            propertyDTO.setAmenities(InputSanitizer.sanitizeList(amenities, "amenities"));
 
             Property property = propertyService.createProperty(propertyDTO, user.getId());
-            
             StorageService storageService = "s3".equals(storageMode) ? s3Service : localService;
             
             int displayOrder = 0;
@@ -218,19 +216,19 @@ public class PropertyController {
             }
 
             PropertyDTO propertyDTO = new PropertyDTO();
-            propertyDTO.setTitle(title);
-            propertyDTO.setDescription(description);
-            propertyDTO.setPropertyType(propertyType);
-            propertyDTO.setLocation(location);
-            propertyDTO.setCity(city);
-            propertyDTO.setEircode(eircode);
-            propertyDTO.setCounty(county);
-            propertyDTO.setFurnishType(furnishType);
+            propertyDTO.setTitle(InputSanitizer.sanitizeShort(title, "title"));
+            propertyDTO.setDescription(InputSanitizer.sanitizeLong(description, "description"));
+            propertyDTO.setPropertyType(InputSanitizer.sanitizeShort(propertyType, "propertyType"));
+            propertyDTO.setLocation(InputSanitizer.sanitizeShort(location, "location"));
+            propertyDTO.setCity(InputSanitizer.sanitizeShort(city, "city"));
+            propertyDTO.setEircode(InputSanitizer.sanitizeShort(eircode, "eircode"));
+            propertyDTO.setCounty(InputSanitizer.sanitizeShort(county, "county"));
+            propertyDTO.setFurnishType(InputSanitizer.sanitizeShort(furnishType, "furnishType"));
             propertyDTO.setPrice(price);
             propertyDTO.setBedrooms(bedrooms);
             propertyDTO.setBathrooms(bathrooms);
             propertyDTO.setAvailableFrom(LocalDate.parse(availableFrom));
-            propertyDTO.setAmenities(amenities);
+            propertyDTO.setAmenities(InputSanitizer.sanitizeList(amenities, "amenities"));
 
             Property property = propertyService.updateProperty(id, propertyDTO, user.getId());
             
@@ -343,7 +341,12 @@ public class PropertyController {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", p.getPropertyId());
                 map.put("name", p.getTitle());
-                map.put("location", p.getCity());
+                map.put("location", p.getAddress());
+                map.put("address", p.getAddress());
+                map.put("city", p.getCity());
+                map.put("eircode", p.getEircode());
+                map.put("county", p.getCounty());
+                map.put("furnishType", p.getFurnishType() != null ? p.getFurnishType().toString() : null);
                 map.put("propertyType", p.getPropertyType().toString());
                 map.put("price", "€" + p.getPrice());
                 map.put("beds", p.getBedrooms());
@@ -380,15 +383,31 @@ public class PropertyController {
             Map<String, Object> response = new HashMap<>();
             response.put("id", property.getPropertyId());
             response.put("name", property.getTitle());
-            response.put("location", property.getCity());
+            response.put("location", property.getAddress());
+            response.put("address", property.getAddress());
+            response.put("city", property.getCity());
+            response.put("eircode", property.getEircode());
+            response.put("county", property.getCounty());
+            response.put("furnishType", property.getFurnishType() != null ? property.getFurnishType().toString() : null);
             response.put("propertyType", property.getPropertyType().toString());
-            response.put("price", property.getPrice());
+            response.put("price", "€" + property.getPrice());
             response.put("beds", property.getBedrooms());
             response.put("bath", property.getBathrooms());
             response.put("status", property.getListingStatus().toString());
             response.put("availableFrom", property.getAvailableFrom());
             response.put("description", property.getDescription());
             response.put("amenities", propertyService.getPropertyAmenities(property.getPropertyId()));
+
+            List<PropertyMedia> media = propertyMediaRepository.findByPropertyIdOrderByDisplayOrder(property.getPropertyId());
+            if (!media.isEmpty()) {
+                response.put("image", media.get(0).getMediaUrl());
+                response.put("mediaList", media.stream().map(m -> {
+                    Map<String, Object> mediaMap = new HashMap<>();
+                    mediaMap.put("url", m.getMediaUrl());
+                    mediaMap.put("type", m.getMediaType().toString().toLowerCase());
+                    return mediaMap;
+                }).collect(Collectors.toList()));
+            }
             
             return ResponseEntity.ok(ResponseDTO.success(Map.of("property", response)));
         } catch (Exception e) {

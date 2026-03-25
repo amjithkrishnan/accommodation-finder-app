@@ -47,7 +47,7 @@ function SignIn({ onSignUp, onForgotPassword, onSuccess }) {
 
         setLoading(true);
         try {
-            const success = await login(email, password);
+            const success = await login(InputSanitizer.sanitizeEmail(email), password);
             if (success) {
                 onSuccess();
             } else {
@@ -72,7 +72,7 @@ function SignIn({ onSignUp, onForgotPassword, onSuccess }) {
 
         setLoading(true);
         try {
-            const data = await authService.forgotPassword(email);
+            const data = await authService.forgotPassword(InputSanitizer.sanitizeEmail(email));
             if (data.status) {
                 alert(data.response || 'Password reset link sent to your email');
             } else {

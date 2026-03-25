@@ -72,7 +72,7 @@ jobs:
           name: webapp-jar
           path: WebApp/target/webapp.jar
 
-  deploy:
+  deploy_serviceapp:
     runs-on: ubuntu-latest
     needs: [build_serviceapp, build_webapp]
     steps:
@@ -82,6 +82,53 @@ jobs:
           name: serviceapp-jar
           path: ServiceApp/target
 
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          # Add both bastion and private host to known_hosts
+          ssh-keyscan -H "${{ secrets.BASTION_HOST }}" >> ~/.ssh/known_hosts
+          ssh ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
+            "ssh-keyscan -H ${{ secrets.SERVICEAPP_PRIVATE_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copy JAR to ServiceApp (via Bastion)
+        run: |
+          # Copy JAR to bastion first, then forward to private subnet
+          scp -o ProxyJump=${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
+            ServiceApp/target/serviceapp.jar \
+            ${{ secrets.SERVICEAPP_USER }}@${{ secrets.SERVICEAPP_PRIVATE_HOST }}:/opt/serviceapp/serviceapp.jar
+
+      - name: Write env file and restart ServiceApp (via Bastion)
+        run: |
+          ssh -o ProxyJump=${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
+            ${{ secrets.SERVICEAPP_USER }}@${{ secrets.SERVICEAPP_PRIVATE_HOST }} \
+            "cat > /opt/serviceapp/.env <<EOF
+          DB_URL=${{ secrets.DB_URL }}
+          DB_USERNAME=${{ secrets.DB_USERNAME }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}
+          APP_ENCRYPTION_KEY=${{ secrets.APP_ENCRYPTION_KEY }}
+          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
+          STORAGE_MODE=${{ secrets.STORAGE_MODE }}
+          COOKIE_DOMAIN=${{ secrets.COOKIE_DOMAIN }}
+          COOKIE_SECURE=true
+          SHOW_SQL=false
+          DDL_AUTO=update
+          EOF"
+
+      - name: Restart ServiceApp
+        run: |
+          ssh -o ProxyJump=${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
+            ${{ secrets.SERVICEAPP_USER }}@${{ secrets.SERVICEAPP_PRIVATE_HOST }} \
+            "sudo systemctl restart serviceapp"
+
+  deploy_webapp:
+    runs-on: ubuntu-latest
+    needs: [build_serviceapp, build_webapp]
+    steps:
       - name: Download WebApp artifact
         uses: actions/download-artifact@v4
         with:
@@ -93,47 +140,22 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ secrets.WEBAPP_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Copy JARs to EC2
+      - name: Copy JAR to WebApp server
         run: |
-          scp ServiceApp/target/serviceapp.jar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/serviceapp/serviceapp.jar
-          scp WebApp/target/webapp.jar ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/webapp/webapp.jar
+          scp WebApp/target/webapp.jar \
+            ${{ secrets.WEBAPP_USER }}@${{ secrets.WEBAPP_HOST }}:/opt/webapp/webapp.jar
 
-      - name: Write ServiceApp env file
+      - name: Write env file and restart WebApp
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cat > /opt/serviceapp/.env <<EOF
-          SPRING_PROFILES_ACTIVE=prod
-          DB_URL=${{ secrets.DB_URL }}
-          DB_USERNAME=${{ secrets.DB_USERNAME }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          DB_DRIVER=${{ secrets.DB_DRIVER }}
-          DDL_AUTO=${{ secrets.DDL_AUTO }}
-          SHOW_SQL=${{ secrets.SHOW_SQL }}
-          HIBERNATE_DIALECT=${{ secrets.HIBERNATE_DIALECT }}
-          SESSION_TIMEOUT=${{ secrets.SESSION_TIMEOUT }}
-          COOKIE_MAX_AGE=${{ secrets.COOKIE_MAX_AGE }}
-          COOKIE_DOMAIN=${{ secrets.COOKIE_DOMAIN }}
-          COOKIE_SECURE=${{ secrets.COOKIE_SECURE }}
-          MAX_FILE_SIZE=${{ secrets.MAX_FILE_SIZE }}
-          MAX_REQUEST_SIZE=${{ secrets.MAX_REQUEST_SIZE }}
-          STORAGE_MODE=${{ secrets.STORAGE_MODE }}
-          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
-          AWS_REGION=${{ secrets.AWS_REGION }}
-          INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          EOF"
-
-      - name: Write WebApp env file
-        run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "cat > /opt/webapp/.env <<EOF
-          SPRING_PROFILES_ACTIVE=prod
+          ssh ${{ secrets.WEBAPP_USER }}@${{ secrets.WEBAPP_HOST }} \
+            "cat > /opt/webapp/.env <<EOF
           SERVICE_APP_URL=${{ secrets.SERVICE_APP_URL }}
           INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}
           EOF"
 
-      - name: Restart services
+      - name: Restart WebApp
         run: |
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "sudo systemctl restart serviceapp"
-          ssh ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "sudo systemctl restart webapp"
+          ssh ${{ secrets.WEBAPP_USER }}@${{ secrets.WEBAPP_HOST }} \
+            "sudo systemctl restart webapp"

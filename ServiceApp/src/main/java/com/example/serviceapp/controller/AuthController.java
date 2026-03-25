@@ -4,6 +4,7 @@ import com.example.serviceapp.dto.ResponseDTO;
 import com.example.serviceapp.dto.UserDTO;
 import com.example.serviceapp.model.User;
 import com.example.serviceapp.service.AuthService;
+import com.example.serviceapp.util.InputSanitizer;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,24 +36,36 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<ResponseDTO> register(@RequestBody User user, HttpSession session) {
-        if (authService.isLoggedIn(session)) {
-            return ResponseEntity.badRequest().body(ResponseDTO.failed("Already logged in", "ALREADY_LOGGED_IN"));
+        try {
+            if (authService.isLoggedIn(session)) {
+                return ResponseEntity.badRequest().body(ResponseDTO.failed("Already logged in", "ALREADY_LOGGED_IN"));
+            }
+            String email = InputSanitizer.sanitizeEmail(user.getEmail());
+            String password = InputSanitizer.sanitizePassword(user.getPassword());
+            if (authService.register(email, password)) {
+                return ResponseEntity.ok(ResponseDTO.success("User registered successfully"));
+            }
+            return ResponseEntity.badRequest().body(ResponseDTO.failed("User already exists", "USER_EXISTS"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.failed(e.getMessage(), "VALIDATION_ERROR"));
         }
-        if (authService.register(user.getEmail(), user.getPassword())) {
-            return ResponseEntity.ok(ResponseDTO.success("User registered successfully"));
-        }
-        return ResponseEntity.badRequest().body(ResponseDTO.failed("User already exists", "USER_EXISTS"));
     }
 
     @PostMapping("/login")
     public ResponseEntity<ResponseDTO> login(@RequestBody User user, HttpSession session) {
-        if (authService.isLoggedIn(session)) {
-            return ResponseEntity.badRequest().body(ResponseDTO.failed("Already logged in", "ALREADY_LOGGED_IN"));
+        try {
+            if (authService.isLoggedIn(session)) {
+                return ResponseEntity.badRequest().body(ResponseDTO.failed("Already logged in", "ALREADY_LOGGED_IN"));
+            }
+            String email = InputSanitizer.sanitizeEmail(user.getEmail());
+            String password = InputSanitizer.sanitizePassword(user.getPassword());
+            if (authService.login(email, password, session)) {
+                return ResponseEntity.ok(ResponseDTO.success("Login successful"));
+            }
+            return ResponseEntity.badRequest().body(ResponseDTO.failed("Invalid credentials", "INVALID_CREDENTIALS"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(ResponseDTO.failed(e.getMessage(), "VALIDATION_ERROR"));
         }
-        if (authService.login(user.getEmail(), user.getPassword(), session)) {
-            return ResponseEntity.ok(ResponseDTO.success("Login successful"));
-        }
-        return ResponseEntity.badRequest().body(ResponseDTO.failed("Invalid credentials", "INVALID_CREDENTIALS"));
     }
 
     @PostMapping("/logout")

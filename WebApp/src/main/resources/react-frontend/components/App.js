@@ -50,7 +50,7 @@ function App() {
                 <div style={{ flex: 1 }}>
                     {route === '/404' && <NotFound />}
                     {(route === '/' || route === '/explore') && <AccommodationList onSignIn={() => navigate('/signin')} onSignUp={() => navigate('/signup')} onViewDetails={() => navigate('/property')} />}
-                    {route === '/property' && <PropertyDetails onBack={() => navigate('/explore')} onSignIn={() => navigate('/signin')} />}
+                    {route === '/property' && <PropertyDetails onBack={() => window.history.back()} onSignIn={() => navigate('/signin')} />}
                     {route === '/signin' && <SignIn onSignUp={() => navigate('/signup')} onForgotPassword={() => alert('Password reset link sent to your email')} onSuccess={() => navigate('/explore')} onBack={() => navigate('/')} />}
                     {route === '/signup' && <SignUp onSuccess={() => navigate('/signin')} onSignIn={() => navigate('/signin')} onBack={() => navigate('/')} />}
                     {(route === '/dashboard' || route === '/my-properties') && <Dashboard onLogout={() => navigate('/')} />}

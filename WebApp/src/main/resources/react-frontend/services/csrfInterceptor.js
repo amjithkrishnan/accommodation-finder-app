@@ -10,8 +10,8 @@ const getCsrfToken = () => {
     return null;
 };
 
-// Fetch CSRF token on app load
-axios.get(`${API_CONFIG.BASE_URL}/api/csrf`, { withCredentials: true }).catch(() => {});
+// Set withCredentials globally so session cookies are always sent
+axios.defaults.withCredentials = true;
 
 // Axios interceptor to add CSRF token to all state-changing requests
 axios.interceptors.request.use(config => {

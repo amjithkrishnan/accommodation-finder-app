@@ -174,6 +174,21 @@ function Dashboard({ onLogout }) {
                                         <Button 
                                             fullWidth
                                             variant="outlined"
+                                            onClick={() => navigate(`/property?id=${property.id}`)}
+                                            aria-label={`View ${property.name}`}
+                                            sx={{ 
+                                                borderColor: '#169B62',
+                                                color: '#169B62',
+                                                textTransform: 'none',
+                                                fontWeight: '600',
+                                                '&:hover': { bgcolor: '#E8F5F0', borderColor: '#169B62' }
+                                            }}
+                                        >
+                                            View
+                                        </Button>
+                                        <Button 
+                                            fullWidth
+                                            variant="outlined"
                                             onClick={() => handleEdit(property)}
                                             aria-label={`Edit ${property.name}`}
                                             sx={{ 

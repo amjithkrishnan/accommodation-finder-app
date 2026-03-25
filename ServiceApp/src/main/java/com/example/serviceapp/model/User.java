@@ -1,6 +1,7 @@
 package com.example.serviceapp.model;
 
 import jakarta.persistence.*;
+import com.example.serviceapp.util.EncryptedFieldConverter;
 import java.time.LocalDateTime;
 
 @Entity
@@ -11,14 +12,19 @@ public class User {
     @Column(name = "user_id")
     private Long id;
 
+    // Email is NOT encrypted - used as DB lookup key
+    // Encrypting with random IV means same email produces different ciphertext
+    // making findByEmail impossible without loading all users
     @Column(nullable = false, unique = true)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
     private String password;
 
+    @Convert(converter = EncryptedFieldConverter.class)
     private String name;
 
+    @Convert(converter = EncryptedFieldConverter.class)
     private String phone;
 
     @Column(name = "created_at", updatable = false)

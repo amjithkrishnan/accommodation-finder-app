@@ -1,6 +1,6 @@
 const propertyService = {
     searchProperties: async (queryParams) => {
-        const response = await axios.get(`${API_CONFIG.BASE_URL}/api/properties/search?${queryParams}`);
+        const response = await axios.get(`${API_CONFIG.BASE_URL}/api/properties/search?${queryParams}`, { withCredentials: true });
         return response.data;
     },
 

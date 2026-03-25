@@ -49,14 +49,19 @@ function AddProperty({ onBack }) {
         if (isEditMode && params.id) {
             const propertyData = JSON.parse(decodeURIComponent(params.data || '{}'));
             console.log('Edit mode property data:', propertyData);
+            const furnishTypeMap = {
+                'FURNISHED': 'Furnished',
+                'UNFURNISHED': 'Unfurnished',
+                'PART_FURNISHED': 'Part Furnished'
+            };
             const flatAmenities = Array.isArray(propertyData.amenities) ? propertyData.amenities.flat(Infinity) : [];
             setForm({
-                address: propertyData.location || propertyData.address || '',
+                address: propertyData.address || propertyData.location || '',
                 eircode: propertyData.eircode || '',
                 city: propertyData.city || '',
                 county: propertyData.county || '',
                 propertyType: propertyData.propertyType || '',
-                furnishType: propertyData.furnishType || '',
+                furnishType: furnishTypeMap[propertyData.furnishType] || propertyData.furnishType || '',
                 price: propertyData.price?.toString().replace('€', '').replace(',', '').trim() || '',
                 bedrooms: propertyData.beds?.toString() || propertyData.bedrooms?.toString() || '',
                 bathrooms: propertyData.bath?.toString() || propertyData.bathrooms?.toString() || '',
@@ -131,20 +136,26 @@ function AddProperty({ onBack }) {
         setLoading(true);
         try {
             const flatAmenities = Array.isArray(form.amenities) ? form.amenities.flat(Infinity).filter(a => typeof a === 'string') : [];
+            const sanitized = InputSanitizer.sanitizeForm(form);
             
+            const furnishTypeToEnum = {
+                'Furnished': 'FURNISHED',
+                'Unfurnished': 'UNFURNISHED',
+                'Part Furnished': 'PART_FURNISHED'
+            };
             const propertyData = {
-                title: form.address,
-                location: form.address,
-                city: form.city,
-                eircode: form.eircode,
-                county: form.county,
-                furnishType: form.furnishType,
-                propertyType: form.propertyType,
+                title: sanitized.address,
+                location: sanitized.address,
+                city: sanitized.city,
+                eircode: sanitized.eircode,
+                county: sanitized.county,
+                furnishType: furnishTypeToEnum[sanitized.furnishType] || sanitized.furnishType,
+                propertyType: sanitized.propertyType,
                 price: parseFloat(form.price),
                 bedrooms: parseInt(form.bedrooms),
                 bathrooms: parseInt(form.bathrooms),
                 availableFrom: form.availableFrom,
-                description: form.description,
+                description: sanitized.description,
                 amenities: flatAmenities
             };
 
