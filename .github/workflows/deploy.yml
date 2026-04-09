@@ -38,17 +38,13 @@ jobs:
     # ----------------------------
     # 4. OWASP FAST MODE (Cached + API KEY)
     # ----------------------------
-    - name: OWASP Dependency Check (Stable Fast Mode)
+    - name: OWASP Scan
       run: |
-        mkdir -p reports
-        mkdir -p odc-cache
-
         docker run --rm \
           -v ${{ github.workspace }}:/src \
-          -v ${{ github.workspace }}/odc-cache:/usr/share/dependency-check/data \
+          -v /tmp/odc-cache:/usr/share/dependency-check/data \
           -e NVD_API_KEY=${{ secrets.NVD_API_KEY }} \
           owasp/dependency-check:12.1.0 \
-          --project "MyProject" \
           --scan /src \
           --format HTML \
           --out /src/reports \
