@@ -1,161 +1,108 @@
-name: Build and Deploy
+name: Build, Scan & Deploy
 
 on:
   push:
     branches:
       - master
 
-env:
-  MAVEN_OPTS: -Dmaven.repo.local=.m2/repository
-
 jobs:
-  build_serviceapp:
+  build-and-scan:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
+    # 🔧 Setup Java
+    - name: Setup Java 21
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'temurin'
+        java-version: '21'
 
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: .m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
+    # Build WebApp
+    - name: Build WebApp
+      run: |
+        cd webapp
+        mvn clean package -DskipTests
 
-      - name: Build ServiceApp
-        run: |
-          cd ServiceApp
-          mvn -U clean package -DskipTests -e
+    # Build ServiceApp
+    - name: Build ServiceApp
+      run: |
+        cd serviceapp
+        mvn clean package -DskipTests
 
-      - name: Upload ServiceApp artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: serviceapp-jar
-          path: ServiceApp/target/serviceapp.jar
+    # 🛡️ OWASP Dependency Check
+    - name: Run OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      with:
+        project: "MyProject"
+        path: "."
+        format: "HTML"
+        out: "reports"
 
-  build_webapp:
+    # Fail if critical vulnerabilities
+    - name: Check vulnerabilities
+      run: |
+        if grep -q "CRITICAL" reports/dependency-check-report.html; then
+          echo "Critical vulnerabilities found!"
+          exit 1
+        fi
+
+    # 📦 Upload JARs
+    - name: Upload JARs
+      uses: actions/upload-artifact@v3
+      with:
+        name: jars
+        path: |
+          webapp/target/*.jar
+          serviceapp/target/*.jar
+
+  deploy:
+    needs: build-and-scan
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+    - name: Download JARs
+      uses: actions/download-artifact@v3
+      with:
+        name: jars
 
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
+    # Copy JARs to Bastion
+    - name: Copy JARs to Bastion
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.BASTION_HOST }}
+        username: ${{ secrets.BASTION_USER }}
+        key: ${{ secrets.BASTION_SSH_KEY }}
+        source: "*.jar"
+        target: "/home/ubuntu/"
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
+    # Deploy via Bastion
+    - name: Deploy to EC2 via Bastion
+      uses: appleboy/ssh-action@v0.1.10
+      with:
+        host: ${{ secrets.BASTION_HOST }}
+        username: ${{ secrets.BASTION_USER }}
+        key: ${{ secrets.BASTION_SSH_KEY }}
+        script: |
 
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: .m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
+          echo "📦 Deploying WebApp to WebApp-1"
+          scp -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no webapp*.jar ubuntu@${{ secrets.WEBAPP1_IP }}:/home/ubuntu/webapp.jar
 
-      - name: Build WebApp
-        run: |
-          cd WebApp
-          mvn -U clean package -DskipTests -e
+          echo "📦 Deploying WebApp to WebApp-2"
+          scp -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no webapp*.jar ubuntu@${{ secrets.WEBAPP2_IP }}:/home/ubuntu/webapp.jar
 
-      - name: Upload WebApp artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: webapp-jar
-          path: WebApp/target/webapp.jar
+          echo "📦 Deploying ServiceApp"
+          scp -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no serviceapp*.jar ubuntu@${{ secrets.SERVICEAPP_IP }}:/home/ubuntu/serviceapp.jar
 
-  deploy_serviceapp:
-    runs-on: ubuntu-latest
-    needs: [build_serviceapp, build_webapp]
-    steps:
-      - name: Download ServiceApp artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: serviceapp-jar
-          path: ServiceApp/target
+          echo "🔄 Restarting WebApp-1"
+          ssh -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.WEBAPP1_IP }} "sudo systemctl restart webapp"
 
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          # Add both bastion and private host to known_hosts
-          ssh-keyscan -H "${{ secrets.BASTION_HOST }}" >> ~/.ssh/known_hosts
-          ssh ${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
-            "ssh-keyscan -H ${{ secrets.SERVICEAPP_PRIVATE_HOST }}" >> ~/.ssh/known_hosts
+          echo "🔄 Restarting WebApp-2"
+          ssh -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.WEBAPP2_IP }} "sudo systemctl restart webapp"
 
-      - name: Copy JAR to ServiceApp (via Bastion)
-        run: |
-          # Copy JAR to bastion first, then forward to private subnet
-          scp -o ProxyJump=${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
-            ServiceApp/target/serviceapp.jar \
-            ${{ secrets.SERVICEAPP_USER }}@${{ secrets.SERVICEAPP_PRIVATE_HOST }}:/opt/serviceapp/serviceapp.jar
+          echo "🔄 Restarting ServiceApp"
+          ssh -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVICEAPP_IP }} "sudo systemctl restart serviceapp"
 
-      - name: Write env file and restart ServiceApp (via Bastion)
-        run: |
-          ssh -o ProxyJump=${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
-            ${{ secrets.SERVICEAPP_USER }}@${{ secrets.SERVICEAPP_PRIVATE_HOST }} \
-            "cat > /opt/serviceapp/.env <<EOF
-          DB_URL=${{ secrets.DB_URL }}
-          DB_USERNAME=${{ secrets.DB_USERNAME }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}
-          APP_ENCRYPTION_KEY=${{ secrets.APP_ENCRYPTION_KEY }}
-          AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          S3_BUCKET_NAME=${{ secrets.S3_BUCKET_NAME }}
-          STORAGE_MODE=${{ secrets.STORAGE_MODE }}
-          COOKIE_DOMAIN=${{ secrets.COOKIE_DOMAIN }}
-          COOKIE_SECURE=true
-          SHOW_SQL=false
-          DDL_AUTO=update
-          EOF"
-
-      - name: Restart ServiceApp
-        run: |
-          ssh -o ProxyJump=${{ secrets.BASTION_USER }}@${{ secrets.BASTION_HOST }} \
-            ${{ secrets.SERVICEAPP_USER }}@${{ secrets.SERVICEAPP_PRIVATE_HOST }} \
-            "sudo systemctl restart serviceapp"
-
-  deploy_webapp:
-    runs-on: ubuntu-latest
-    needs: [build_serviceapp, build_webapp]
-    steps:
-      - name: Download WebApp artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: webapp-jar
-          path: WebApp/target
-
-      - name: Setup SSH
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "${{ secrets.WEBAPP_HOST }}" >> ~/.ssh/known_hosts
-
-      - name: Copy JAR to WebApp server
-        run: |
-          scp WebApp/target/webapp.jar \
-            ${{ secrets.WEBAPP_USER }}@${{ secrets.WEBAPP_HOST }}:/opt/webapp/webapp.jar
-
-      - name: Write env file and restart WebApp
-        run: |
-          ssh ${{ secrets.WEBAPP_USER }}@${{ secrets.WEBAPP_HOST }} \
-            "cat > /opt/webapp/.env <<EOF
-          SERVICE_APP_URL=${{ secrets.SERVICE_APP_URL }}
-          INTERNAL_SECRET=${{ secrets.INTERNAL_SECRET }}
-          EOF"
-
-      - name: Restart WebApp
-        run: |
-          ssh ${{ secrets.WEBAPP_USER }}@${{ secrets.WEBAPP_HOST }} \
-            "sudo systemctl restart webapp"
+          echo "✅ Deployment Successful"

@@ -1,35 +1,35 @@
-stages:
-  - build
-  # - deploy  # Disabled - using GitHub Actions for deployment
+# stages:
+#   - build
+#   # - deploy  # Disabled - using GitHub Actions for deployment
 
-variables:
-  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+# variables:
+#   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
 
-cache:
-  paths:
-    - .m2/repository
+# cache:
+#   paths:
+#     - .m2/repository
 
-build_serviceapp:
-  stage: build
-  image: maven:3.9.9-eclipse-temurin-21
-  script:
-    - cd ServiceApp
-    - mvn -U clean package -DskipTests -e
-  artifacts:
-    paths:
-      - ServiceApp/target/serviceapp.jar
+# build_serviceapp:
+#   stage: build
+#   image: maven:3.9.9-eclipse-temurin-21
+#   script:
+#     - cd ServiceApp
+#     - mvn -U clean package -DskipTests -e
+#   artifacts:
+#     paths:
+#       - ServiceApp/target/serviceapp.jar
 
-build_webapp:
-  stage: build
-  image: maven:3.9.9-eclipse-temurin-21
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq nodejs npm
-  script:
-    - cd WebApp
-    - mvn -U clean package -DskipTests -e
-  artifacts:
-    paths:
-      - WebApp/target/webapp.jar
+# build_webapp:
+#   stage: build
+#   image: maven:3.9.9-eclipse-temurin-21
+#   before_script:
+#     - apt-get update -qq && apt-get install -y -qq nodejs npm
+#   script:
+#     - cd WebApp
+#     - mvn -U clean package -DskipTests -e
+#   artifacts:
+#     paths:
+#       - WebApp/target/webapp.jar
 
 # deploy:
 #   stage: deploy
