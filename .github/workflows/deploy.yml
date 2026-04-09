@@ -34,20 +34,18 @@ jobs:
         mvn clean package -DskipTests
 
     # OWASP Dependency Check (STABLE CLI VERSION)
-    - name: Install OWASP Dependency Check
+    - name: Run OWASP Dependency Check
       run: |
-        wget https://github.com/jeremylong/DependencyCheck/releases/latest/download/dependency-check.zip
-        unzip dependency-check.zip
-
-    - name: Run OWASP Scan
-      run: |
-        ./dependency-check/bin/dependency-check.sh \
+        mkdir -p reports
+        docker run --rm \
+          -v ${{ github.workspace }}:/src \
+          owasp/dependency-check \
           --project "MyProject" \
-          --scan . \
+          --scan /src \
           --format HTML \
-          --out reports
+          --out /src/reports
 
-    # Fail pipeline on critical vulnerabilities
+    # Fail pipeline if CRITICAL vulnerabilities exist
     - name: Check Vulnerabilities
       run: |
         if grep -q "CRITICAL" reports/dependency-check-report.html; then
