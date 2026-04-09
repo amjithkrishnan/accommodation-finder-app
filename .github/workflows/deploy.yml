@@ -1,9 +1,9 @@
-name: Build, Scan & Deploy
+name: Build, Security Scan & Deploy
 
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   build-and-scan:
@@ -13,12 +13,13 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # 🔧 Setup Java
+    # ☕ Setup Java 21
     - name: Setup Java 21
       uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '21'
+        cache: maven
 
     # Build WebApp
     - name: Build WebApp
@@ -32,24 +33,29 @@ jobs:
         cd ServiceApp
         mvn clean package -DskipTests
 
-    # 🛡️ OWASP Dependency Check
-    - name: Run OWASP Dependency Check
-      uses: dependency-check/Dependency-Check_Action@main
-      with:
-        project: "MyProject"
-        path: "."
-        format: "HTML"
-        out: "reports"
+    # 🛡️ OWASP Dependency Check (STABLE CLI VERSION)
+    - name: Install OWASP Dependency Check
+      run: |
+        wget https://github.com/jeremylong/DependencyCheck/releases/latest/download/dependency-check.zip
+        unzip dependency-check.zip
 
-    # Fail if critical vulnerabilities
-    - name: Check vulnerabilities
+    - name: Run OWASP Scan
+      run: |
+        ./dependency-check/bin/dependency-check.sh \
+          --project "MyProject" \
+          --scan . \
+          --format HTML \
+          --out reports
+
+    # Fail pipeline on critical vulnerabilities
+    - name: Check Vulnerabilities
       run: |
         if grep -q "CRITICAL" reports/dependency-check-report.html; then
           echo "Critical vulnerabilities found!"
           exit 1
         fi
 
-    # 📦 Upload JARs
+    # 📦 Upload artifacts
     - name: Upload JARs
       uses: actions/upload-artifact@v4
       with:
@@ -63,22 +69,22 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Download JARs
+    - name: Download artifacts
       uses: actions/download-artifact@v4
       with:
         name: jars
 
-    # Copy JARs to Bastion
+    # 📦 Copy JARs to Bastion
     - name: Copy JARs to Bastion
       uses: appleboy/scp-action@v0.1.7
       with:
         host: ${{ secrets.BASTION_HOST }}
         username: ${{ secrets.BASTION_USER }}
         key: ${{ secrets.BASTION_SSH_KEY }}
-        source: "jars/*.jar"
+        source: "*.jar"
         target: "/home/ubuntu/"
 
-    # Deploy via Bastion
+    # 🚀 Deploy from Bastion to EC2
     - name: Deploy to EC2 via Bastion
       uses: appleboy/ssh-action@v0.1.10
       with:
@@ -87,22 +93,20 @@ jobs:
         key: ${{ secrets.BASTION_SSH_KEY }}
         script: |
 
-          echo "📦 Deploying WebApp to WebApp-1"
-          scp -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no webapp*.jar ubuntu@${{ secrets.WEBAPP1_IP }}:/home/ubuntu/webapp.jar
+          echo "📦 Deploying WebApp-1"
+          scp -i /home/ubuntu/cpp-project.pem webapp*.jar ubuntu@${{ secrets.WEBAPP1_IP }}:/home/ubuntu/webapp.jar
 
-          echo "📦 Deploying WebApp to WebApp-2"
-          scp -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no webapp*.jar ubuntu@${{ secrets.WEBAPP2_IP }}:/home/ubuntu/webapp.jar
+          echo "📦 Deploying WebApp-2"
+          scp -i /home/ubuntu/cpp-project.pem webapp*.jar ubuntu@${{ secrets.WEBAPP2_IP }}:/home/ubuntu/webapp.jar
 
           echo "📦 Deploying ServiceApp"
-          scp -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no serviceapp*.jar ubuntu@${{ secrets.SERVICEAPP_IP }}:/home/ubuntu/serviceapp.jar
+          scp -i /home/ubuntu/cpp-project.pem serviceapp*.jar ubuntu@${{ secrets.SERVICEAPP_IP }}:/home/ubuntu/serviceapp.jar
 
-          echo "🔄 Restarting WebApp-1"
-          ssh -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.WEBAPP1_IP }} "sudo systemctl restart webapp"
+          echo "🔄 Restart WebApps"
+          ssh -i /home/ubuntu/cpp-project.pem ubuntu@${{ secrets.WEBAPP1_IP }} "sudo systemctl restart webapp"
+          ssh -i /home/ubuntu/cpp-project.pem ubuntu@${{ secrets.WEBAPP2_IP }} "sudo systemctl restart webapp"
 
-          echo "🔄 Restarting WebApp-2"
-          ssh -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.WEBAPP2_IP }} "sudo systemctl restart webapp"
-
-          echo "🔄 Restarting ServiceApp"
-          ssh -i /home/ubuntu/cpp-project.pem -o StrictHostKeyChecking=no ubuntu@${{ secrets.SERVICEAPP_IP }} "sudo systemctl restart serviceapp"
+          echo "🔄 Restart ServiceApp"
+          ssh -i /home/ubuntu/cpp-project.pem ubuntu@${{ secrets.SERVICEAPP_IP }} "sudo systemctl restart serviceapp"
 
           echo "✅ Deployment Successful"
