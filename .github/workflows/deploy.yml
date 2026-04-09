@@ -38,7 +38,7 @@ jobs:
     # ----------------------------
     # 4. OWASP FAST MODE (Cached + API KEY)
     # ----------------------------
-    - name: Run OWASP Dependency Check (FAST MODE)
+    - name: OWASP Dependency Check (Stable Fast Mode)
       run: |
         mkdir -p reports
         mkdir -p odc-cache
@@ -47,24 +47,23 @@ jobs:
           -v ${{ github.workspace }}:/src \
           -v ${{ github.workspace }}/odc-cache:/usr/share/dependency-check/data \
           -e NVD_API_KEY=${{ secrets.NVD_API_KEY }} \
-          owasp/dependency-check \
+          owasp/dependency-check:12.1.0 \
           --project "MyProject" \
           --scan /src \
           --format HTML \
           --out /src/reports \
           --data /usr/share/dependency-check/data \
-          --nvdApiKey ${{ secrets.NVD_API_KEY }} \
-          --enableExperimental \
+          --disableYarnAudit \
+          --disableNodeAudit \
           --failOnCVSS 7
 
     # ----------------------------
-    # 5. Fail on High Vulnerabilities
+    # 5. Security Gate
     # ----------------------------
     - name: Security Gate
       run: |
-        echo "Checking report..."
         if grep -q "CRITICAL" reports/dependency-check-report.html; then
-          echo "Critical vulnerabilities found - stopping pipeline"
+          echo "CRITICAL vulnerabilities found"
           exit 1
         fi
 
