@@ -11,11 +11,11 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     # 🔧 Setup Java
     - name: Setup Java 21
-      uses: actions/setup-java@v3
+      uses: actions/setup-java@v4
       with:
         distribution: 'temurin'
         java-version: '21'
@@ -51,7 +51,7 @@ jobs:
 
     # 📦 Upload JARs
     - name: Upload JARs
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: jars
         path: |
@@ -64,7 +64,7 @@ jobs:
 
     steps:
     - name: Download JARs
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: jars
 
@@ -75,7 +75,7 @@ jobs:
         host: ${{ secrets.BASTION_HOST }}
         username: ${{ secrets.BASTION_USER }}
         key: ${{ secrets.BASTION_SSH_KEY }}
-        source: "*.jar"
+        source: "jars/*.jar"
         target: "/home/ubuntu/"
 
     # Deploy via Bastion
