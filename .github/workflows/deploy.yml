@@ -1,4 +1,4 @@
-name: Build, Security Scan & Deploy
+name: Build, Security Scan and Deploy
 
 on:
   push:
