@@ -1,9 +1,9 @@
-name: Build, Security Scan and Deploy
+name: Build, Security Scan & Deploy
 
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build-and-scan:
@@ -13,7 +13,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    # ☕ Setup Java 21
+    # Setup Java 21
     - name: Setup Java 21
       uses: actions/setup-java@v4
       with:
@@ -33,7 +33,7 @@ jobs:
         cd ServiceApp
         mvn clean package -DskipTests
 
-    # 🛡️ OWASP Dependency Check (STABLE CLI VERSION)
+    # OWASP Dependency Check (STABLE CLI VERSION)
     - name: Install OWASP Dependency Check
       run: |
         wget https://github.com/jeremylong/DependencyCheck/releases/latest/download/dependency-check.zip
@@ -55,7 +55,7 @@ jobs:
           exit 1
         fi
 
-    # 📦 Upload artifacts
+    # Upload artifacts
     - name: Upload JARs
       uses: actions/upload-artifact@v4
       with:
@@ -74,7 +74,7 @@ jobs:
       with:
         name: jars
 
-    # 📦 Copy JARs to Bastion
+    # Copy JARs to Bastion
     - name: Copy JARs to Bastion
       uses: appleboy/scp-action@v0.1.7
       with:
@@ -84,7 +84,7 @@ jobs:
         source: "*.jar"
         target: "/home/ubuntu/"
 
-    # 🚀 Deploy from Bastion to EC2
+    # Deploy from Bastion to EC2
     - name: Deploy to EC2 via Bastion
       uses: appleboy/ssh-action@v0.1.10
       with:
@@ -93,20 +93,20 @@ jobs:
         key: ${{ secrets.BASTION_SSH_KEY }}
         script: |
 
-          echo "📦 Deploying WebApp-1"
+          echo "Deploying WebApp-1"
           scp -i /home/ubuntu/cpp-project.pem webapp*.jar ubuntu@${{ secrets.WEBAPP1_IP }}:/home/ubuntu/webapp.jar
 
-          echo "📦 Deploying WebApp-2"
+          echo "Deploying WebApp-2"
           scp -i /home/ubuntu/cpp-project.pem webapp*.jar ubuntu@${{ secrets.WEBAPP2_IP }}:/home/ubuntu/webapp.jar
 
-          echo "📦 Deploying ServiceApp"
+          echo "Deploying ServiceApp"
           scp -i /home/ubuntu/cpp-project.pem serviceapp*.jar ubuntu@${{ secrets.SERVICEAPP_IP }}:/home/ubuntu/serviceapp.jar
 
-          echo "🔄 Restart WebApps"
+          echo "Restart WebApps"
           ssh -i /home/ubuntu/cpp-project.pem ubuntu@${{ secrets.WEBAPP1_IP }} "sudo systemctl restart webapp"
           ssh -i /home/ubuntu/cpp-project.pem ubuntu@${{ secrets.WEBAPP2_IP }} "sudo systemctl restart webapp"
 
-          echo "🔄 Restart ServiceApp"
+          echo "Restart ServiceApp"
           ssh -i /home/ubuntu/cpp-project.pem ubuntu@${{ secrets.SERVICEAPP_IP }} "sudo systemctl restart serviceapp"
 
-          echo "✅ Deployment Successful"
+          echo "Deployment Successful"
