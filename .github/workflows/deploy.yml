@@ -23,13 +23,13 @@ jobs:
     # Build WebApp
     - name: Build WebApp
       run: |
-        cd webapp
+        cd WebApp
         mvn clean package -DskipTests
 
     # Build ServiceApp
     - name: Build ServiceApp
       run: |
-        cd serviceapp
+        cd ServiceApp
         mvn clean package -DskipTests
 
     # 🛡️ OWASP Dependency Check
@@ -55,8 +55,8 @@ jobs:
       with:
         name: jars
         path: |
-          webapp/target/*.jar
-          serviceapp/target/*.jar
+          WebApp/target/*.jar
+          ServiceApp/target/*.jar
 
   deploy:
     needs: build-and-scan
