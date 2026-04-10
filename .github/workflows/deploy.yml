@@ -48,6 +48,7 @@ jobs:
         path: ~/.dependency-check/data
         key: nvd-${{ runner.os }}-${{ steps.date.outputs.date }}
         restore-keys: nvd-${{ runner.os }}-
+        save-always: true
 
     - name: OWASP Dependency Check
       run: |
