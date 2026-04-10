@@ -41,31 +41,29 @@ jobs:
     - name: Cache NVD Database
       uses: actions/cache@v4
       with:
-        path: ~/.m2/repository/org/owasp/dependency-check-data
-        key: nvd-${{ runner.os }}-${{ github.run_id }}
+        path: ~/.dependency-check/data
+        key: nvd-${{ runner.os }}-${{ steps.date.outputs.date }}
         restore-keys: nvd-${{ runner.os }}-
+
+    - name: Get date for cache key
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
     - name: OWASP Dependency Check
       run: |
         mkdir -p reports
-        mvn org.owasp:dependency-check-maven:check \
-          -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+        COMMON_OPTS="-DnvdApiKey=${{ secrets.NVD_API_KEY }} \
           -DfailBuildOnCVSS=7 \
           -Dformat=HTML \
-          -DoutputDirectory=${{ github.workspace }}/reports \
-          -DsuppressionsFile= \
+          -DdataDirectory=$HOME/.dependency-check/data \
           -DassemblyAnalyzerEnabled=false \
           -DnodeAnalyzerEnabled=false \
-          -DyarnAuditAnalyzerEnabled=false \
+          -DyarnAuditAnalyzerEnabled=false"
+        mvn org.owasp:dependency-check-maven:check $COMMON_OPTS \
+          -DoutputDirectory=${{ github.workspace }}/reports/webapp \
           -f WebApp/pom.xml
-        mvn org.owasp:dependency-check-maven:check \
-          -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
-          -DfailBuildOnCVSS=7 \
-          -Dformat=HTML \
-          -DoutputDirectory=${{ github.workspace }}/reports \
-          -DassemblyAnalyzerEnabled=false \
-          -DnodeAnalyzerEnabled=false \
-          -DyarnAuditAnalyzerEnabled=false \
+        mvn org.owasp:dependency-check-maven:check $COMMON_OPTS \
+          -DoutputDirectory=${{ github.workspace }}/reports/serviceapp \
           -f ServiceApp/pom.xml
 
 
