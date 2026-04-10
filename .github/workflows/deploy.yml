@@ -38,12 +38,20 @@ jobs:
     # ----------------------------
     # 4. OWASP FAST MODE (Cached + API KEY)
     # ----------------------------
+    - name: Cache NVD Database
+      uses: actions/cache@v4
+      with:
+        path: ~/.dependency-check/data
+        key: nvd-cache-${{ runner.os }}
+        restore-keys: nvd-cache-
+
     - name: OWASP Dependency Check (Final Stable Mode)
       run: |
         mkdir -p reports
 
         docker run --rm \
         -v ${{ github.workspace }}:/src \
+        -v ~/.dependency-check/data:/usr/share/dependency-check/data \
         owasp/dependency-check:12.1.0 \
         --scan /src \
         --format HTML \
@@ -51,7 +59,7 @@ jobs:
         --disableYarnAudit \
         --disableNodeAudit \
         --failOnCVSS 7 \
-        --update false
+        --nvdApiKey ${{ secrets.NVD_API_KEY }}
 
 
   
