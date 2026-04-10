@@ -38,16 +38,16 @@ jobs:
     # ----------------------------
     # 4. OWASP Dependency Check (Maven, Cached NVD)
     # ----------------------------
+    - name: Get date for cache key
+      id: date
+      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
+
     - name: Cache NVD Database
       uses: actions/cache@v4
       with:
         path: ~/.dependency-check/data
         key: nvd-${{ runner.os }}-${{ steps.date.outputs.date }}
         restore-keys: nvd-${{ runner.os }}-
-
-    - name: Get date for cache key
-      id: date
-      run: echo "date=$(date +'%Y-%m-%d')" >> $GITHUB_OUTPUT
 
     - name: OWASP Dependency Check
       run: |
