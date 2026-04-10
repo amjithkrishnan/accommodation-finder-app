@@ -43,15 +43,15 @@ jobs:
         mkdir -p reports
 
         docker run --rm \
-          -v ${{ github.workspace }}:/src \
-          owasp/dependency-check:12.1.0 \
-          --scan /src \
-          --format HTML \
-          --out /src/reports \
-          --disableYarnAudit \
-          --disableNodeAudit \
-          --failOnCVSS 7 \
-          --update false
+        -v ${{ github.workspace }}:/src \
+        owasp/dependency-check:12.1.0 \
+        --scan /src \
+        --format HTML \
+        --out /src \
+        --disableYarnAudit \
+        --disableNodeAudit \
+        --failOnCVSS 7 \
+        --update false
 
     # ----------------------------
     # 5. Security Gate
