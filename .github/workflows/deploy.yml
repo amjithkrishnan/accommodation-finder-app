@@ -52,21 +52,10 @@ jobs:
 
     - name: OWASP Dependency Check
       run: |
-        mkdir -p reports
-        COMMON_OPTS="-DnvdApiKey=${{ secrets.NVD_API_KEY }} \
-          -DfailBuildOnCVSS=7 \
-          -Dformat=HTML \
-          -DdataDirectory=$HOME/.dependency-check/data \
-          -DsuppressionsFile=${{ github.workspace }}/owasp-suppressions.xml \
-          -DassemblyAnalyzerEnabled=false \
-          -DnodeAnalyzerEnabled=false \
-          -DyarnAuditAnalyzerEnabled=false"
-        mvn org.owasp:dependency-check-maven:check $COMMON_OPTS \
-          -DoutputDirectory=${{ github.workspace }}/reports/webapp \
-          -f WebApp/pom.xml
-        mvn org.owasp:dependency-check-maven:check $COMMON_OPTS \
-          -DoutputDirectory=${{ github.workspace }}/reports/serviceapp \
-          -f ServiceApp/pom.xml
+        mkdir -p reports/webapp reports/serviceapp
+        COMMON_OPTS="-DnvdApiKey=${{ secrets.NVD_API_KEY }} -DfailBuildOnCVSS=7 -Dformat=HTML -DdataDirectory=$HOME/.dependency-check/data -DsuppressionsFile=${{ github.workspace }}/owasp-suppressions.xml -DassemblyAnalyzerEnabled=false -DnodeAnalyzerEnabled=false -DyarnAuditAnalyzerEnabled=false"
+        mvn org.owasp:dependency-check-maven:check $COMMON_OPTS -DoutputDirectory=$(pwd)/reports/webapp -f WebApp/pom.xml
+        mvn org.owasp:dependency-check-maven:check $COMMON_OPTS -DoutputDirectory=$(pwd)/reports/serviceapp -f ServiceApp/pom.xml
 
     - name: Save NVD Database Cache
       if: always()
