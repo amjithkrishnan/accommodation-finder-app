@@ -42,13 +42,13 @@ jobs:
       id: date
       run: echo "date=$(date +'%Y-%m')" >> $GITHUB_OUTPUT
 
-    - name: Cache NVD Database
-      uses: actions/cache@v4
+    - name: Restore NVD Database Cache
+      id: nvd-cache
+      uses: actions/cache/restore@v4
       with:
         path: ~/.dependency-check/data
         key: nvd-${{ runner.os }}-${{ steps.date.outputs.date }}
         restore-keys: nvd-${{ runner.os }}-
-        save-always: true
 
     - name: OWASP Dependency Check
       run: |
@@ -67,6 +67,13 @@ jobs:
         mvn org.owasp:dependency-check-maven:check $COMMON_OPTS \
           -DoutputDirectory=${{ github.workspace }}/reports/serviceapp \
           -f ServiceApp/pom.xml
+
+    - name: Save NVD Database Cache
+      if: always()
+      uses: actions/cache/save@v4
+      with:
+        path: ~/.dependency-check/data
+        key: nvd-${{ runner.os }}-${{ steps.date.outputs.date }}
 
 
   
