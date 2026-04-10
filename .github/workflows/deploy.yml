@@ -36,30 +36,37 @@ jobs:
         cd ../ServiceApp && mvn clean package -DskipTests
 
     # ----------------------------
-    # 4. OWASP FAST MODE (Cached + API KEY)
+    # 4. OWASP Dependency Check (Maven, Cached NVD)
     # ----------------------------
     - name: Cache NVD Database
       uses: actions/cache@v4
       with:
-        path: ~/.dependency-check/data
-        key: nvd-cache-${{ runner.os }}
-        restore-keys: nvd-cache-
+        path: ~/.m2/repository/org/owasp/dependency-check-data
+        key: nvd-${{ runner.os }}-${{ github.run_id }}
+        restore-keys: nvd-${{ runner.os }}-
 
-    - name: OWASP Dependency Check (Final Stable Mode)
+    - name: OWASP Dependency Check
       run: |
         mkdir -p reports
-
-        docker run --rm \
-        -v ${{ github.workspace }}:/src \
-        -v ~/.dependency-check/data:/usr/share/dependency-check/data \
-        owasp/dependency-check:12.1.0 \
-        --scan /src \
-        --format HTML \
-        --out /src/reports \
-        --disableYarnAudit \
-        --disableNodeAudit \
-        --failOnCVSS 7 \
-        --nvdApiKey ${{ secrets.NVD_API_KEY }}
+        mvn org.owasp:dependency-check-maven:check \
+          -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+          -DfailBuildOnCVSS=7 \
+          -Dformat=HTML \
+          -DoutputDirectory=${{ github.workspace }}/reports \
+          -DsuppressionsFile= \
+          -DassemblyAnalyzerEnabled=false \
+          -DnodeAnalyzerEnabled=false \
+          -DyarnAuditAnalyzerEnabled=false \
+          -f WebApp/pom.xml
+        mvn org.owasp:dependency-check-maven:check \
+          -DnvdApiKey=${{ secrets.NVD_API_KEY }} \
+          -DfailBuildOnCVSS=7 \
+          -Dformat=HTML \
+          -DoutputDirectory=${{ github.workspace }}/reports \
+          -DassemblyAnalyzerEnabled=false \
+          -DnodeAnalyzerEnabled=false \
+          -DyarnAuditAnalyzerEnabled=false \
+          -f ServiceApp/pom.xml
 
 
   
