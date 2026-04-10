@@ -76,17 +76,19 @@ jobs:
     # ----------------------------
     - name: Security Gate
       run: |
-        if [ -f reports/dependency-check-report.html ]; then
-          if grep -q "CRITICAL" reports/dependency-check-report.html; then
-            echo "CRITICAL vulnerabilities found"
-            exit 1
+        FAILED=0
+        for report in reports/webapp/dependency-check-report.html reports/serviceapp/dependency-check-report.html; do
+          if [ -f "$report" ]; then
+            if grep -q "CRITICAL" "$report"; then
+              echo "CRITICAL vulnerabilities found in $report"
+              FAILED=1
+            fi
           else
-            echo "No CRITICAL vulnerabilities"
+            echo "Report not found: $report"
+            FAILED=1
           fi
-        else
-          echo "OWASP report not found"
-          exit 1
-        fi
+        done
+        exit $FAILED
 
     # ----------------------------
     # 6. Upload Artifacts (v4)
