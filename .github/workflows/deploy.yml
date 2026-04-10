@@ -56,6 +56,7 @@ jobs:
           -DfailBuildOnCVSS=7 \
           -Dformat=HTML \
           -DdataDirectory=$HOME/.dependency-check/data \
+          -DsuppressionsFile=${{ github.workspace }}/owasp-suppressions.xml \
           -DassemblyAnalyzerEnabled=false \
           -DnodeAnalyzerEnabled=false \
           -DyarnAuditAnalyzerEnabled=false"

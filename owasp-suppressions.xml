@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+    <!--
+        CVE-2025-68161: Affects log4j-core Socket Appender (TLS hostname verification).
+        Spring Boot only includes log4j-api (bridge), not log4j-core.
+        Not exploitable without log4j-core on classpath.
+    -->
+    <suppress>
+        <notes>False positive - affects log4j-core Socket Appender only, not log4j-api</notes>
+        <packageUrl regex="true">^pkg:maven/org\.apache\.logging\.log4j/log4j\-api@.*$</packageUrl>
+        <cve>CVE-2025-68161</cve>
+    </suppress>
+
+</suppressions>
