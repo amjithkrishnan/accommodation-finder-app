@@ -47,19 +47,29 @@ jobs:
         owasp/dependency-check:12.1.0 \
         --scan /src \
         --format HTML \
-        --out /src \
+        --out /src/reports \
         --disableYarnAudit \
         --disableNodeAudit \
         --failOnCVSS 7 \
         --update false
+
+
+  
 
     # ----------------------------
     # 5. Security Gate
     # ----------------------------
     - name: Security Gate
       run: |
-        if grep -q "CRITICAL" reports/dependency-check-report.html; then
-          echo "CRITICAL vulnerabilities found"
+        if [ -f reports/dependency-check-report.html ]; then
+          if grep -q "CRITICAL" reports/dependency-check-report.html; then
+            echo "CRITICAL vulnerabilities found"
+            exit 1
+          else
+            echo "No CRITICAL vulnerabilities"
+          fi
+        else
+          echo "OWASP report not found"
           exit 1
         fi
 
