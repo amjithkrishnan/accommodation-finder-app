@@ -38,20 +38,20 @@ jobs:
     # ----------------------------
     # 4. OWASP FAST MODE (Cached + API KEY)
     # ----------------------------
-    - name: OWASP Scan
+    - name: OWASP Dependency Check (Final Stable Mode)
       run: |
+        mkdir -p reports
+
         docker run --rm \
           -v ${{ github.workspace }}:/src \
-          -v /tmp/odc-cache:/usr/share/dependency-check/data \
-          -e NVD_API_KEY=${{ secrets.NVD_API_KEY }} \
           owasp/dependency-check:12.1.0 \
           --scan /src \
           --format HTML \
           --out /src/reports \
-          --data /usr/share/dependency-check/data \
           --disableYarnAudit \
           --disableNodeAudit \
-          --failOnCVSS 7
+          --failOnCVSS 7 \
+          --update false
 
     # ----------------------------
     # 5. Security Gate
