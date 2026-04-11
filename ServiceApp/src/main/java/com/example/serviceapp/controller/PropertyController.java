@@ -40,7 +40,7 @@ public class PropertyController {
     @Value("${app.storage.mode}")
     private String storageMode;
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("s3StorageService")
     private StorageService s3Service;
 

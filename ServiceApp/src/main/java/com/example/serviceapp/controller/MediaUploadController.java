@@ -25,11 +25,11 @@ import java.util.UUID;
 @CrossOrigin(origins = "http://localhost:8080", allowCredentials = "true")
 public class MediaUploadController {
 
-    @Autowired
+    @Autowired(required = false)
     @Qualifier("s3StorageService")
     private S3Service s3Service;
 
-    @Autowired
+    @Autowired(required = false)
     private software.amazon.awssdk.services.s3.S3Client s3Client;
 
     @Value("${app.storage.mode}")
@@ -37,6 +37,9 @@ public class MediaUploadController {
 
     @Value("${aws.s3.bucket-name:}")
     private String bucketName;
+
+    @Value("${aws.s3.region:eu-west-1}")
+    private String region;
 
     private static final long MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
     private static final long MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
@@ -145,7 +148,7 @@ public class MediaUploadController {
                     .build();
             
             s3Client.putObject(putRequest, requestBody);
-            return String.format("https://%s.s3.eu-west-1.amazonaws.com/%s", bucketName, key);
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, key);
         }
         throw new RuntimeException("Only S3 storage mode supported for separate uploads");
     }

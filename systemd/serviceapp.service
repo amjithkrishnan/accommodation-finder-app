@@ -1,0 +1,18 @@
+[Unit]
+Description=AccommodateMe ServiceApp
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+EnvironmentFile=/opt/serviceapp/.env
+ExecStart=/usr/bin/java -jar /opt/serviceapp/serviceapp.jar
+SuccessExitStatus=143
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=serviceapp
+
+[Install]
+WantedBy=multi-user.target

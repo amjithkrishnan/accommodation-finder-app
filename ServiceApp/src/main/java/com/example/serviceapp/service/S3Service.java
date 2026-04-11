@@ -1,5 +1,6 @@
 package com.example.serviceapp.service;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -15,6 +16,7 @@ import java.time.Duration;
 import java.util.UUID;
 
 @Service("s3StorageService")
+@ConditionalOnProperty(name = "app.storage.mode", havingValue = "s3")
 public class S3Service implements StorageService {
 
     @Autowired
@@ -25,6 +27,9 @@ public class S3Service implements StorageService {
 
     @Value("${aws.s3.bucket-name}")
     private String bucketName;
+
+    @Value("${aws.s3.region}")
+    private String region;
 
     @Override
     public String uploadFile(MultipartFile file, String folder) {
@@ -39,7 +44,7 @@ public class S3Service implements StorageService {
 
             s3Client.putObject(putObjectRequest, RequestBody.fromBytes(file.getBytes()));
             
-            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, "eu-west-1", fileName);
+            return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, fileName);
         } catch (Exception e) {
             throw new RuntimeException("Failed to upload file to S3", e);
         }
@@ -71,6 +76,6 @@ public class S3Service implements StorageService {
     }
 
     public String getFileUrl(String fileName) {
-        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, "eu-west-1", fileName);
+        return String.format("https://%s.s3.%s.amazonaws.com/%s", bucketName, region, fileName);
     }
 }

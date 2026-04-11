@@ -128,24 +128,16 @@ jobs:
     # ----------------------------
     # 9. Deploy via Bastion
     # ----------------------------
-    - name: Deploy to Private Instances
+    - name: Deploy via Bastion
       uses: appleboy/ssh-action@v0.1.10
       with:
         host: ${{ secrets.BASTION_HOST }}
         username: ubuntu
         key: ${{ secrets.BASTION_SSH_KEY }}
         script: |
-
-          echo "Deploying WebApp-1"
-          scp -i ~/key.pem webapp*.jar ubuntu@${{ secrets.WEBAPP1_IP }}:/home/ubuntu/webapp.jar
-
-          echo "Deploying WebApp-2"
-          scp -i ~/key.pem webapp*.jar ubuntu@${{ secrets.WEBAPP2_IP }}:/home/ubuntu/webapp.jar
-
-          echo "Deploying ServiceApp"
-          scp -i ~/key.pem serviceapp*.jar ubuntu@${{ secrets.SERVICEAPP_IP }}:/home/ubuntu/serviceapp.jar
-
-          echo "Restarting Services"
+          scp -i ~/key.pem webapp*.jar ubuntu@${{ secrets.WEBAPP1_IP }}:/opt/webapp/webapp.jar
+          scp -i ~/key.pem webapp*.jar ubuntu@${{ secrets.WEBAPP2_IP }}:/opt/webapp/webapp.jar
+          scp -i ~/key.pem serviceapp*.jar ubuntu@${{ secrets.SERVICEAPP_IP }}:/opt/serviceapp/serviceapp.jar
 
           ssh -i ~/key.pem ubuntu@${{ secrets.WEBAPP1_IP }} "sudo systemctl restart webapp"
           ssh -i ~/key.pem ubuntu@${{ secrets.WEBAPP2_IP }} "sudo systemctl restart webapp"
