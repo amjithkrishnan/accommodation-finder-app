@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -45,6 +46,32 @@ public class MediaUploadController {
     private static final long MAX_VIDEO_SIZE = 50 * 1024 * 1024; // 50MB
     private static final List<String> ALLOWED_IMAGE_TYPES = Arrays.asList("image/jpeg", "image/jpg", "image/png");
     private static final List<String> ALLOWED_VIDEO_TYPES = Arrays.asList("video/mp4", "video/mpeg", "video/quicktime");
+
+    @PostMapping("/images")
+    public ResponseEntity<?> uploadImages(@RequestParam("files") List<MultipartFile> files, HttpSession session) {
+        UserDTO user = (UserDTO) session.getAttribute("USER");
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ResponseDTO.failed("Not authenticated", "NOT_AUTHENTICATED"));
+        }
+        List<MediaUploadDTO> results = new ArrayList<>();
+        for (MultipartFile file : files) {
+            try {
+                if (file.isEmpty() || file.getSize() > MAX_IMAGE_SIZE || !ALLOWED_IMAGE_TYPES.contains(file.getContentType())) continue;
+                String fileName = UUID.randomUUID() + "-" + file.getOriginalFilename();
+                String s3Key = "properties/" + fileName;
+                byte[] originalBytes = file.getBytes();
+                String originalUrl = uploadToS3(originalBytes, s3Key, file.getContentType());
+                byte[] thumbnailBytes = ImageThumbnailUtil.generateThumbnail(originalBytes);
+                String thumbnailKey = "properties/thumbnails/" + fileName;
+                String thumbnailUrl = uploadToS3(thumbnailBytes, thumbnailKey, "image/jpeg");
+                results.add(new MediaUploadDTO(originalUrl, thumbnailUrl, s3Key, thumbnailKey, "IMAGE", file.getOriginalFilename(), file.getSize()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return ResponseEntity.ok(ResponseDTO.success(results));
+    }
 
     @PostMapping("/image")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file, HttpSession session) {

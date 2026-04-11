@@ -7,9 +7,25 @@ function PropertyDetails({ onBack, onSignIn }) {
     
     const [property, setProperty] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
-    const [mainImage, setMainImage] = React.useState('');
-    const [mainMediaType, setMainMediaType] = React.useState('image');
+    const [activeIndex, setActiveIndex] = React.useState(0);
     const [activeTab, setActiveTab] = React.useState(0);
+
+    const mediaList = React.useMemo(() => {
+        if (!property) return [];
+        return property.mediaList || (property.image ? [{ url: property.image, type: 'image' }] : []);
+    }, [property]);
+
+    const prev = () => setActiveIndex(i => (i - 1 + mediaList.length) % mediaList.length);
+    const next = () => setActiveIndex(i => (i + 1) % mediaList.length);
+
+    React.useEffect(() => {
+        const handleKey = (e) => {
+            if (e.key === 'ArrowLeft') prev();
+            if (e.key === 'ArrowRight') next();
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => window.removeEventListener('keydown', handleKey);
+    }, [mediaList.length]);
     
     React.useEffect(() => {
         if (params.id) {
@@ -23,8 +39,6 @@ function PropertyDetails({ onBack, onSignIn }) {
             if (response.status && response.response) {
                 const p = response.response.property || response.response;
                 setProperty(p);
-                const firstImage = p.image || 'https://via.placeholder.com/800x500?text=Property';
-                setMainImage(firstImage);
             }
         } catch (error) {
             console.error('Failed to fetch property:', error);
@@ -77,73 +91,43 @@ function PropertyDetails({ onBack, onSignIn }) {
                 <Grid container spacing={3}>
                     {/* LEFT - Image Gallery */}
                     <Grid item xs={12} md={8}>
-                        <Card sx={{ borderRadius: 3, boxShadow: 3, mb: 3 }}>
-                            {mainMediaType === 'image' ? (
-                                <CardMedia
-                                    component="img"
-                                    image={mainImage}
-                                    alt="Property"
-                                    sx={{ height: isMobile ? 300 : 500, objectFit: 'cover' }}
-                                />
+                        <Card sx={{ borderRadius: 3, boxShadow: 3, mb: 3, position: 'relative', overflow: 'hidden' }}>
+                            {mediaList.length === 0 ? (
+                                <Box sx={{ height: isMobile ? 300 : 500, bgcolor: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <Typography color="text.secondary">No images available</Typography>
+                                </Box>
+                            ) : mediaList[activeIndex].type === 'image' ? (
+                                <CardMedia component="img" image={mediaList[activeIndex].url} alt="Property"
+                                    sx={{ height: isMobile ? 300 : 500, objectFit: 'cover' }} />
                             ) : (
                                 <Box sx={{ height: isMobile ? 300 : 500, bgcolor: '#000' }}>
-                                    <iframe
-                                        width="100%"
-                                        height="100%"
-                                        src={mainImage}
-                                        frameBorder="0"
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                    />
+                                    <iframe width="100%" height="100%" src={mediaList[activeIndex].url}
+                                        frameBorder="0" allowFullScreen />
                                 </Box>
                             )}
+
+                            {/* Arrows */}
+                            {mediaList.length > 1 && (
+                                <>
+                                    <Box onClick={prev} sx={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', bgcolor: 'rgba(0,0,0,0.5)', color: 'white', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 20, userSelect: 'none', '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}>‹</Box>
+                                    <Box onClick={next} sx={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', bgcolor: 'rgba(0,0,0,0.5)', color: 'white', borderRadius: '50%', width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 20, userSelect: 'none', '&:hover': { bgcolor: 'rgba(0,0,0,0.8)' } }}>›</Box>
+                                    <Box sx={{ position: 'absolute', bottom: 12, left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: 1 }}>
+                                        {mediaList.map((_, idx) => (
+                                            <Box key={idx} onClick={() => setActiveIndex(idx)} sx={{ width: idx === activeIndex ? 20 : 8, height: 8, borderRadius: 4, bgcolor: idx === activeIndex ? 'white' : 'rgba(255,255,255,0.5)', cursor: 'pointer', transition: 'all 0.2s' }} />
+                                        ))}
+                                    </Box>
+                                </>
+                            )}
                         </Card>
-                        
-                        <Box sx={{ 
-                            display: 'flex', 
-                            gap: 2, 
-                            overflowX: 'auto',
-                            pb: 2,
-                            mb: 3,
-                            '&::-webkit-scrollbar': { height: 8 },
-                            '&::-webkit-scrollbar-thumb': { bgcolor: '#169B62', borderRadius: 4 }
-                        }}>
-                            {(property.mediaList || (property.image ? [{ url: property.image, type: 'image' }] : [])).map((item, idx) => (
-                                <Box
-                                    key={idx}
-                                    onClick={() => { setMainImage(item.url); setMainMediaType(item.type); }}
-                                    sx={{
-                                        minWidth: isMobile ? 80 : 120,
-                                        width: isMobile ? 80 : 120,
-                                        height: isMobile ? 60 : 90,
-                                        borderRadius: 2,
-                                        cursor: 'pointer',
-                                        border: mainImage === item.url ? '3px solid #169B62' : '3px solid #e0e0e0',
-                                        transition: 'all 0.2s',
-                                        position: 'relative',
-                                        overflow: 'hidden',
-                                        '&:hover': { opacity: 0.8 }
-                                    }}
-                                >
+
+                        {/* Thumbnails */}
+                        <Box sx={{ display: 'flex', gap: 2, overflowX: 'auto', pb: 2, mb: 3, '&::-webkit-scrollbar': { height: 8 }, '&::-webkit-scrollbar-thumb': { bgcolor: '#169B62', borderRadius: 4 } }}>
+                            {mediaList.map((item, idx) => (
+                                <Box key={idx} onClick={() => setActiveIndex(idx)} sx={{ minWidth: isMobile ? 80 : 120, width: isMobile ? 80 : 120, height: isMobile ? 60 : 90, borderRadius: 2, cursor: 'pointer', border: idx === activeIndex ? '3px solid #169B62' : '3px solid #e0e0e0', transition: 'all 0.2s', overflow: 'hidden', '&:hover': { opacity: 0.8 } }}>
                                     {item.type === 'image' ? (
-                                        <Box
-                                            component="img"
-                                            src={item.url}
-                                            sx={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
+                                        <Box component="img" src={item.url} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                     ) : (
-                                        <Box sx={{ 
-                                            width: '100%', 
-                                            height: '100%', 
-                                            bgcolor: '#000',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            color: 'white',
-                                            fontSize: '32px'
-                                        }}>
-                                            ▶
-                                        </Box>
+                                        <Box sx={{ width: '100%', height: '100%', bgcolor: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '32px' }}>▶</Box>
                                     )}
                                 </Box>
                             ))}

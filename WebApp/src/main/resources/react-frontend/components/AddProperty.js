@@ -144,16 +144,17 @@ function AddProperty({ onBack }) {
                 'Part Furnished': 'PART_FURNISHED'
             };
 
-            // Upload new images first
+            // Upload all images in a single request
             const uploadedMedia = [];
-            for (const img of images.filter(i => !i.existing)) {
+            const newImages = images.filter(i => !i.existing);
+            if (newImages.length > 0) {
                 const formData = new FormData();
-                formData.append('file', img.file);
-                const res = await axios.post(`${API_CONFIG.BASE_URL}/api/uploads/image`, formData, {
+                newImages.forEach(img => formData.append('files', img.file));
+                const res = await axios.post(`${API_CONFIG.BASE_URL}/api/uploads/images`, formData, {
                     withCredentials: true,
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
-                if (res.data.status) uploadedMedia.push({ ...res.data.response, mediaType: 'IMAGE' });
+                if (res.data.status) res.data.response.forEach(m => uploadedMedia.push({ ...m, mediaType: 'IMAGE' }));
             }
             for (const vid of videos.filter(v => !v.existing)) {
                 const formData = new FormData();
