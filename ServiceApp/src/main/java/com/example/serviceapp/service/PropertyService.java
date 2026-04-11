@@ -154,12 +154,15 @@ public class PropertyService {
                 String searchPattern = "%" + location.toLowerCase() + "%";
                 predicates.add(cb.or(
                     cb.like(cb.lower(root.get("city")), searchPattern),
-                    cb.like(cb.lower(root.get("address")), searchPattern)
+                    cb.like(cb.lower(root.get("address")), searchPattern),
+                    cb.like(cb.lower(root.get("county")), searchPattern),
+                    cb.like(cb.lower(root.get("eircode")), searchPattern),
+                    cb.like(cb.lower(root.get("title")), searchPattern)
                 ));
             }
             
             if (propertyType != null && !propertyType.trim().isEmpty()) {
-                predicates.add(cb.equal(root.get("propertyType"), propertyType));
+                predicates.add(cb.equal(cb.lower(root.get("propertyType")), propertyType.toLowerCase()));
             }
             
             if (minPrice != null) {
@@ -181,7 +184,9 @@ public class PropertyService {
             return cb.and(predicates.toArray(new Predicate[0]));
         };
         
-        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(page, size);
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.PageRequest.of(
+            page, size, org.springframework.data.domain.Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt")
+        );
         return propertyRepository.findAll(spec, pageable);
     }
 }
