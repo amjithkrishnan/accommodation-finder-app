@@ -21,30 +21,43 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
     const [loading, setLoading] = React.useState(false);
     const [totalPages, setTotalPages] = React.useState(0);
     const [totalCount, setTotalCount] = React.useState(0);
+    const [propertyTypes, setPropertyTypes] = React.useState([]);
     const pageSize = 12;
 
     React.useEffect(() => {
-        fetchProperties();
-    }, [page]);
+        masterDataService.getAllMasterData().then(res => {
+            if (res.status && res.response) setPropertyTypes(res.response.propertyTypes || []);
+        }).catch(() => {});
+    }, []);
 
-    const fetchProperties = async () => {
+    React.useEffect(() => {
+        fetchProperties(page);
+    }, [page, sortBy]);
+
+    const fetchProperties = async (currentPage = 1, currentSearch = searchLocation, currentFilters = filters) => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
-            if (searchLocation) params.append('location', searchLocation);
-            if (filters.propertyType) params.append('propertyType', filters.propertyType);
-            if (filters.minPrice) params.append('minPrice', filters.minPrice);
-            if (filters.maxPrice) params.append('maxPrice', filters.maxPrice);
-            if (filters.bedrooms) params.append('bedrooms', filters.bedrooms);
-            if (filters.moveInDate) params.append('availableFrom', filters.moveInDate);
-            params.append('page', page - 1);
+            if (currentSearch) params.append('location', currentSearch);
+            if (currentFilters.propertyType) params.append('propertyType', currentFilters.propertyType);
+            if (currentFilters.minPrice) params.append('minPrice', currentFilters.minPrice);
+            if (currentFilters.maxPrice) params.append('maxPrice', currentFilters.maxPrice);
+            if (currentFilters.bedrooms) params.append('bedrooms', currentFilters.bedrooms);
+            if (currentFilters.moveInDate) params.append('availableFrom', currentFilters.moveInDate);
+            if (sortBy === 'price-low') params.append('sortBy', 'price');
+            if (sortBy === 'price-high') { params.append('sortBy', 'price'); params.append('sortDir', 'desc'); }
+            params.append('page', currentPage - 1);
             params.append('size', pageSize);
-            
+
             const response = await propertyService.searchProperties(params.toString());
             if (response.status && response.response?.properties) {
-                setAccommodations(response.response.properties.content || response.response.properties);
-                setTotalCount(response.response.properties.totalElements || response.response.properties.length);
-                setTotalPages(response.response.properties.totalPages || Math.ceil((response.response.properties.length || 0) / pageSize));
+                let results = response.response.properties.content || response.response.properties;
+                // Client-side sort fallback
+                if (sortBy === 'price-low') results = [...results].sort((a, b) => parseFloat(a.price?.replace(/[^0-9.]/g, '') || 0) - parseFloat(b.price?.replace(/[^0-9.]/g, '') || 0));
+                if (sortBy === 'price-high') results = [...results].sort((a, b) => parseFloat(b.price?.replace(/[^0-9.]/g, '') || 0) - parseFloat(a.price?.replace(/[^0-9.]/g, '') || 0));
+                setAccommodations(results);
+                setTotalCount(response.response.properties.totalElements || results.length);
+                setTotalPages(response.response.properties.totalPages || Math.ceil((response.response.properties.totalElements || results.length) / pageSize));
             }
         } catch (error) {
             console.error('Failed to fetch properties:', error);
@@ -55,17 +68,20 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
 
     const handleSearch = () => {
         setPage(1);
-        fetchProperties();
+        fetchProperties(1, searchLocation, filters);
     };
 
     const handleFilterApply = () => {
         setFilterOpen(false);
         setPage(1);
-        fetchProperties();
+        fetchProperties(1, searchLocation, filters);
     };
 
     const handleFilterReset = () => {
-        setFilters({ propertyType: '', minPrice: '', maxPrice: '', bedrooms: '', moveInDate: '' });
+        const reset = { propertyType: '', minPrice: '', maxPrice: '', bedrooms: '', moveInDate: '' };
+        setFilters(reset);
+        setPage(1);
+        fetchProperties(1, searchLocation, reset);
     };
 
     return (
@@ -111,6 +127,7 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                             placeholder="Search by location, city, or area..."
                             value={searchLocation}
                             onChange={(e) => setSearchLocation(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                             size={isMobile ? 'small' : 'medium'}
                             sx={{ 
                                 '& .MuiOutlinedInput-root': { 
@@ -161,9 +178,7 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                     <DialogContent sx={{ mt: 2 }}>
                         <TextField select fullWidth label="Property Type" margin="normal" value={filters.propertyType} onChange={(e) => setFilters({...filters, propertyType: e.target.value})} SelectProps={{ native: true }}>
                             <option value="">All</option>
-                            <option value="Apartment">Apartment</option>
-                            <option value="House">House</option>
-                            <option value="Room">Room</option>
+                            {propertyTypes.map(type => <option key={type} value={type}>{type}</option>)}
                         </TextField>
                         <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
                             <TextField fullWidth label="Min Price" type="number" value={filters.minPrice} onChange={(e) => setFilters({...filters, minPrice: e.target.value})} />
@@ -221,31 +236,19 @@ function AccommodationList({ onSignIn, onSignUp, onViewDetails }) {
                     >
                         <MenuItem 
                             onClick={() => { setSortBy('newest'); setSortMenuAnchor(null); }}
-                            sx={{ 
-                                '&:hover': { bgcolor: '#f0f9f5' },
-                                color: sortBy === 'newest' ? '#169B62' : 'inherit',
-                                fontWeight: sortBy === 'newest' ? 'bold' : 'normal'
-                            }}
+                            sx={{ '&:hover': { bgcolor: '#f0f9f5' }, color: sortBy === 'newest' ? '#169B62' : 'inherit', fontWeight: sortBy === 'newest' ? 'bold' : 'normal' }}
                         >
                             Newest First
                         </MenuItem>
                         <MenuItem 
                             onClick={() => { setSortBy('price-low'); setSortMenuAnchor(null); }}
-                            sx={{ 
-                                '&:hover': { bgcolor: '#f0f9f5' },
-                                color: sortBy === 'price-low' ? '#169B62' : 'inherit',
-                                fontWeight: sortBy === 'price-low' ? 'bold' : 'normal'
-                            }}
+                            sx={{ '&:hover': { bgcolor: '#f0f9f5' }, color: sortBy === 'price-low' ? '#169B62' : 'inherit', fontWeight: sortBy === 'price-low' ? 'bold' : 'normal' }}
                         >
                             Price: Low to High
                         </MenuItem>
                         <MenuItem 
                             onClick={() => { setSortBy('price-high'); setSortMenuAnchor(null); }}
-                            sx={{ 
-                                '&:hover': { bgcolor: '#f0f9f5' },
-                                color: sortBy === 'price-high' ? '#169B62' : 'inherit',
-                                fontWeight: sortBy === 'price-high' ? 'bold' : 'normal'
-                            }}
+                            sx={{ '&:hover': { bgcolor: '#f0f9f5' }, color: sortBy === 'price-high' ? '#169B62' : 'inherit', fontWeight: sortBy === 'price-high' ? 'bold' : 'normal' }}
                         >
                             Price: High to Low
                         </MenuItem>
