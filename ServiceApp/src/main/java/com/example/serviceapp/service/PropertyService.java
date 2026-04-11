@@ -154,10 +154,8 @@ public class PropertyService {
                 String searchPattern = "%" + location.toLowerCase() + "%";
                 predicates.add(cb.or(
                     cb.like(cb.lower(root.get("city")), searchPattern),
-                    cb.like(cb.lower(root.get("address")), searchPattern),
                     cb.like(cb.lower(root.get("county")), searchPattern),
-                    cb.like(cb.lower(root.get("eircode")), searchPattern),
-                    cb.like(cb.lower(root.get("title")), searchPattern)
+                    cb.like(cb.lower(root.get("eircode")), searchPattern)
                 ));
             }
             
