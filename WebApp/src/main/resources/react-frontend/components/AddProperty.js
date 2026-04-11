@@ -143,6 +143,28 @@ function AddProperty({ onBack }) {
                 'Unfurnished': 'UNFURNISHED',
                 'Part Furnished': 'PART_FURNISHED'
             };
+
+            // Upload new images first
+            const uploadedMedia = [];
+            for (const img of images.filter(i => !i.existing)) {
+                const formData = new FormData();
+                formData.append('file', img.file);
+                const res = await axios.post(`${API_CONFIG.BASE_URL}/api/uploads/image`, formData, {
+                    withCredentials: true,
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (res.data.status) uploadedMedia.push({ ...res.data.response, mediaType: 'IMAGE' });
+            }
+            for (const vid of videos.filter(v => !v.existing)) {
+                const formData = new FormData();
+                formData.append('file', vid.file);
+                const res = await axios.post(`${API_CONFIG.BASE_URL}/api/uploads/video`, formData, {
+                    withCredentials: true,
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
+                if (res.data.status) uploadedMedia.push({ ...res.data.response, mediaType: 'VIDEO' });
+            }
+
             const propertyData = {
                 title: sanitized.address,
                 location: sanitized.address,
@@ -156,7 +178,8 @@ function AddProperty({ onBack }) {
                 bathrooms: parseInt(form.bathrooms),
                 availableFrom: form.availableFrom,
                 description: sanitized.description,
-                amenities: flatAmenities
+                amenities: flatAmenities,
+                media: uploadedMedia
             };
 
             if (isEditMode && params.id) {

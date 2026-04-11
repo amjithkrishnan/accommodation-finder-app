@@ -69,6 +69,11 @@ public class ProxyController {
     public ResponseEntity<?> proxyMedia(HttpServletRequest request, @RequestBody(required = false) String body) {
         return proxyRequest(request, body);
     }
+
+    @RequestMapping(value = "/uploads/**", method = {RequestMethod.POST})
+    public ResponseEntity<?> proxyUploads(HttpServletRequest request) {
+        return proxyMultipartRequest((MultipartHttpServletRequest) request);
+    }
     
     private ResponseEntity<?> proxyMultipartRequest(MultipartHttpServletRequest request) {
         try {
