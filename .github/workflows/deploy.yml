@@ -142,12 +142,12 @@ jobs:
         username: ubuntu
         key: ${{ secrets.BASTION_SSH_KEY }}
         script: |
-          scp -i ~/key.pem webapp*.jar ubuntu@${{ secrets.WEBAPP1_IP }}:/opt/webapp/webapp.jar
-          scp -i ~/key.pem webapp*.jar ubuntu@${{ secrets.WEBAPP2_IP }}:/opt/webapp/webapp.jar
-          scp -i ~/key.pem serviceapp*.jar ubuntu@${{ secrets.SERVICEAPP_IP }}:/opt/serviceapp/serviceapp.jar
+          scp -i ~/cpp-project.pem webapp*.jar ubuntu@${{ secrets.WEBAPP1_IP }}:/opt/webapp/webapp.jar
+          scp -i ~/cpp-project.pem webapp*.jar ubuntu@${{ secrets.WEBAPP2_IP }}:/opt/webapp/webapp.jar
+          scp -i ~/cpp-project.pem serviceapp*.jar ubuntu@${{ secrets.SERVICEAPP_IP }}:/opt/serviceapp/serviceapp.jar
 
-          ssh -i ~/key.pem ubuntu@${{ secrets.WEBAPP1_IP }} "sudo systemctl restart webapp"
-          ssh -i ~/key.pem ubuntu@${{ secrets.WEBAPP2_IP }} "sudo systemctl restart webapp"
-          ssh -i ~/key.pem ubuntu@${{ secrets.SERVICEAPP_IP }} "sudo systemctl restart serviceapp"
+          ssh -i ~/cpp-project.pem ubuntu@${{ secrets.WEBAPP1_IP }} "sudo systemctl restart webapp"
+          ssh -i ~/cpp-project.pem ubuntu@${{ secrets.WEBAPP2_IP }} "sudo systemctl restart webapp"
+          ssh -i ~/cpp-project.pem ubuntu@${{ secrets.SERVICEAPP_IP }} "sudo systemctl restart serviceapp"
 
           echo "✅ Deployment Completed"
