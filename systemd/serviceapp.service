@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 User=ubuntu
 EnvironmentFile=/opt/serviceapp/.env
-ExecStart=/usr/bin/java -jar /opt/serviceapp/serviceapp.jar
+ExecStart=/usr/bin/java -jar /opt/serviceapp/serviceapp.jar --spring.profiles.active=prod
 SuccessExitStatus=143
 Restart=always
 RestartSec=10

@@ -128,7 +128,7 @@ jobs:
         host: ${{ secrets.BASTION_HOST }}
         username: ubuntu
         key: ${{ secrets.BASTION_SSH_KEY }}
-        source: "deploy/*.jar"
+        source: "deploy/*"
         target: "/home/ubuntu/"
         strip_components: 1
 
