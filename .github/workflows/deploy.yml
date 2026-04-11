@@ -113,6 +113,12 @@ jobs:
       with:
         name: build-artifacts
 
+    - name: Collect JARs
+      run: |
+        mkdir -p deploy
+        cp WebApp/target/*.jar deploy/
+        cp ServiceApp/target/*.jar deploy/
+
     # ----------------------------
     # 8. Copy to Bastion
     # ----------------------------
@@ -122,8 +128,9 @@ jobs:
         host: ${{ secrets.BASTION_HOST }}
         username: ubuntu
         key: ${{ secrets.BASTION_SSH_KEY }}
-        source: "*.jar"
+        source: "deploy/*.jar"
         target: "/home/ubuntu/"
+        strip_components: 1
 
     # ----------------------------
     # 9. Deploy via Bastion
